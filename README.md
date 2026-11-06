@@ -5,7 +5,7 @@ Canlı akan bir borsada trader kariyeri. Tek dosyalık bir web oyunu; iPhone'da 
 **Oyna:** https://burakyai.github.io/Trader-Sim/
 
 ## Oyun Modu
-- 10 kurgusal şirket, her saniye kendi kendine hareket eden fiyatlar, BIST kuralları (fiyat adımı, %10 taban/tavan, 10:00–18:00 seans)
+- BIST 30 + CVKMD, PAHOL, ECILC (33 gerçek şirket adı; bugünkü fiyat, işlem hacmi ve oynaklıktan başlayan oyun içi fiyatlar), her saniye kendi kendine hareket eden fiyatlar, BIST kuralları (fiyat adımı, %10 taban/tavan, 10:00–18:00 seans)
 - Bilanço, ihale, SPK, faiz kararı gibi haberler fiyatları sarsar
 - İki hız: **Hızlı** (1 borsa günü = 8 dakika) ya da **Gerçek saat**
 - Uygulama kapalıyken de piyasa işler; limit ve stop emirleri o arada gerçekleşir
@@ -30,4 +30,4 @@ Gerçek BIST hisseleriyle (~15 dk gecikmeli) demo hesap. Veriyi Claude'daki bors
 
 ## Notlar
 - Kayıtlar tarayıcıda (localStorage) tutulur.
-- Şirketler, haberler ve fiyatlar kurgusaldır. Tahtacılık gerçek hayatta suçtur; burada yalnızca bir oyun mekaniğidir. Yatırım tavsiyesi değildir.
+- Oyun Modu'nda şirket adları gerçek; fiyat hareketleri, haberler, SPK olayları ve tahtacılık oyun içi simülasyondur, gerçek şirketlerle ilgili değildir. Tahtacılık gerçek hayatta suçtur; burada yalnızca bir oyun mekaniğidir. Yatırım tavsiyesi değildir.

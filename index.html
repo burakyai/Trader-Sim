@@ -239,7 +239,7 @@ canvas{display:block;width:100%;height:210px}
     <p class="sub" style="text-align:center;margin:6px 0 18px">Nasıl oynamak istersin? Her modun kendi 100.000 ₺'lik ayrı cüzdanı var, istediğin an geçiş yapabilirsin.</p>
     <div class="mcard">
       <div class="mt">🎮 Oyun Modu</div>
-      <div class="md">10 kurgusal şirket, kendi kendine canlı akan bir piyasa. Bilanço, ihale, faiz kararı, SPK incelemesi gibi haberler fiyatları sarsar. Uygulama kapalıyken de piyasa işler, emirlerin gerçekleşir.</div>
+      <div class="md">BIST 30 + CVKMD, PAHOL, ECILC: gerçek şirket adları, bugünkü fiyatlarından başlayan, kendi kendine canlı akan bir oyun piyasası. Bilanço, ihale, faiz kararı, SPK incelemesi gibi haberler fiyatları sarsar. Uygulama kapalıyken de piyasa işler, emirlerin gerçekleşir.</div>
       <div id="gameCont"></div>
       <div class="mbtns" id="gameStart">
         <button class="btn pri" data-speed="fast">⚡ Hızlı başla<br><small>1 borsa günü = 8 dakika</small></button>
@@ -261,19 +261,43 @@ canvas{display:block;width:100%;height:210px}
 const START = 100000;
 const SERVER = "borsa";
 const DAY = 28800; // one session = 8h of session-seconds
-const BASE = ["THYAO","GARAN","ASELS","AKBNK","BIMAS","EREGL","KCHOL","SISE","TUPRS","FROTO","YKBNK","PGSUS","SAHOL","TCELL","ISCTR","TOASO","ENKAI","MGROS","ECILC","PAHOL"];
+const BASE = ["CVKMD","PAHOL","ECILC","THYAO","GARAN","ASELS","AKBNK","BIMAS","EREGL","KCHOL","SISE","TUPRS","FROTO","YKBNK","PGSUS","SAHOL","TCELL","ISCTR","TOASO","ENKAI","MGROS","AEFES","ASTOR","EKGYO","GUBRF","KRDMD","PETKM","SASA","TAVHL","TRALT","TRMET","TTKOM","VAKBN"];
 const GS = [
-  {s:"KRTAL", n:"Kartal Havayolları",   p:285,  v:.026, b:1.1, sec:"ulasim", L:1200000000},
-  {s:"BGZBN", n:"Boğaz Bankası",         p:138,  v:.022, b:1.3, sec:"banka", L:1500000000},
-  {s:"DMRCL", n:"Demir Çelik Sanayi",    p:42.5, v:.024, b:1.0, sec:"sanayi", L:300000000},
-  {s:"YLDZT", n:"Yıldız Teknoloji",      p:96.4, v:.034, b:1.2, sec:"teknoloji", L:400000000},
-  {s:"MRMEN", n:"Marmara Enerji",        p:18.7, v:.028, b:0.9, sec:"enerji", L:200000000},
-  {s:"EGEGD", n:"Ege Gıda",              p:512,  v:.016, b:0.6, sec:"gida", L:600000000},
-  {s:"TRSVN", n:"Toros Savunma",         p:214,  v:.030, b:0.8, sec:"savunma", L:700000000},
-  {s:"ANKGY", n:"Ankara GYO",            p:9.84, v:.032, b:1.2, sec:"gyo", L:150000000},
-  {s:"KPDOT", n:"Kapadokya Otomotiv",    p:1045, v:.019, b:1.0, sec:"otomotiv", L:900000000},
-  {s:"ZGRMD", n:"Zigana Madencilik",     p:64.2, v:.031, b:0.9, sec:"madencilik", L:250000000},
+  {s:"CVKMD", n:"CVK Maden", p:14.54, v:0.036, b:1.2, sec:"madencilik", L:826000000},
+  {s:"PAHOL", n:"Pasifik Holding", p:0.77, v:0.036, b:1.4, sec:"holding", L:142000000},
+  {s:"ECILC", n:"Eczacıbaşı İlaç", p:49.34, v:0.036, b:0.8, sec:"saglik", L:179000000},
+  {s:"AEFES", n:"Anadolu Efes", p:16.85, v:0.022, b:0.8, sec:"gida", L:696000000},
+  {s:"AKBNK", n:"Akbank", p:68.65, v:0.025, b:1.3, sec:"banka", L:8846000000},
+  {s:"ASELS", n:"Aselsan", p:331.75, v:0.036, b:1.0, sec:"savunma", L:13502000000},
+  {s:"ASTOR", n:"Astor Enerji", p:161.5, v:0.036, b:1.2, sec:"enerji", L:7729000000},
+  {s:"BIMAS", n:"BİM Mağazalar", p:371.75, v:0.027, b:0.7, sec:"gida", L:3190000000},
+  {s:"EKGYO", n:"Emlak Konut GYO", p:17.66, v:0.028, b:1.2, sec:"gyo", L:1327000000},
+  {s:"ENKAI", n:"Enka İnşaat", p:80.85, v:0.026, b:0.7, sec:"sanayi", L:873000000},
+  {s:"EREGL", n:"Ereğli Demir Çelik", p:31.06, v:0.027, b:1.0, sec:"sanayi", L:2864000000},
+  {s:"FROTO", n:"Ford Otosan", p:73.15, v:0.031, b:1.0, sec:"otomotiv", L:3156000000},
+  {s:"GARAN", n:"Garanti BBVA", p:144.3, v:0.019, b:1.3, sec:"banka", L:6334000000},
+  {s:"GUBRF", n:"Gübre Fabrikaları", p:289.25, v:0.036, b:1.1, sec:"sanayi", L:794000000},
+  {s:"ISCTR", n:"İş Bankası", p:13.29, v:0.021, b:1.3, sec:"banka", L:6744000000},
+  {s:"KCHOL", n:"Koç Holding", p:206.1, v:0.021, b:1.0, sec:"holding", L:6205000000},
+  {s:"KRDMD", n:"Kardemir", p:36.16, v:0.033, b:1.1, sec:"sanayi", L:2451000000},
+  {s:"MGROS", n:"Migros", p:468.75, v:0.023, b:0.8, sec:"gida", L:1938000000},
+  {s:"PETKM", n:"Petkim", p:16.33, v:0.024, b:1.0, sec:"enerji", L:1363000000},
+  {s:"PGSUS", n:"Pegasus", p:141.6, v:0.035, b:1.2, sec:"ulasim", L:1224000000},
+  {s:"SAHOL", n:"Sabancı Holding", p:87.3, v:0.018, b:1.1, sec:"holding", L:2794000000},
+  {s:"SASA", n:"SASA Polyester", p:1.58, v:0.036, b:1.3, sec:"sanayi", L:2651000000},
+  {s:"SISE", n:"Şişecam", p:34.24, v:0.022, b:1.0, sec:"sanayi", L:1978000000},
+  {s:"TAVHL", n:"TAV Havalimanları", p:294.5, v:0.022, b:1.0, sec:"ulasim", L:934000000},
+  {s:"TCELL", n:"Turkcell", p:90.0, v:0.017, b:0.8, sec:"teknoloji", L:2594000000},
+  {s:"THYAO", n:"Türk Hava Yolları", p:299.25, v:0.015, b:1.1, sec:"ulasim", L:12609000000},
+  {s:"TOASO", n:"Tofaş", p:243.0, v:0.029, b:1.0, sec:"otomotiv", L:2739000000},
+  {s:"TRALT", n:"Türk Altın İşletmeleri", p:38.14, v:0.036, b:0.9, sec:"madencilik", L:3254000000},
+  {s:"TRMET", n:"TR Anadolu Metal Madencilik", p:111.9, v:0.036, b:1.0, sec:"madencilik", L:531000000},
+  {s:"TTKOM", n:"Türk Telekom", p:48.16, v:0.022, b:0.8, sec:"teknoloji", L:1237000000},
+  {s:"TUPRS", n:"Tüpraş", p:337.5, v:0.036, b:1.0, sec:"enerji", L:8186000000},
+  {s:"VAKBN", n:"Vakıfbank", p:33.06, v:0.028, b:1.3, sec:"banka", L:1463000000},
+  {s:"YKBNK", n:"Yapı Kredi", p:37.24, v:0.022, b:1.3, sec:"banka", L:9831000000},
 ];
+const OLD_FICT = ["KRTAL","BGZBN","DMRCL","YLDZT","MRMEN","EGEGD","TRSVN","ANKGY","KPDOT","ZGRMD"];
 const ASSETS = [
   {s:"ALTIN", n:"Gram Altın",  p:4150,    v:.011, b:-0.3, sec:"emtia",  L:5e9,  k:"emtia", tr:0.0003},
   {s:"GUMUS", n:"Gram Gümüş",  p:52.4,    v:.018, b:-0.2, sec:"emtia",  L:8e8,  k:"emtia"},
@@ -386,7 +410,15 @@ function load(){
   mode = lsGet("arena_mode"); PREMIUM = lsGet("arena_premium")===true;
 }
 function fixSim(x){ if(!x) return x; if(!x.ticks) x.ticks={}; if(!x.co) x.co=JSON.parse(JSON.stringify(GS)); return x; }
-function ensureAssets(){ if (!SIM) return; const have=new Set(SIM.co.map(g=>g.s)); const sd=Math.floor((SIM.G+1)/DAY);
+function ensureAssets(){ if (!SIM) return; const sd=Math.floor((SIM.G+1)/DAY);
+  const a0=ACC.game, op=a0.c&&a0.c.op; const busy=s=> (a0.pos[s]) || a0.orders.some(o=>o.sym===s) || (op&&op.sym===s);
+  if (SIM.co.some(g=>OLD_FICT.includes(g.s))){
+    SIM.co=SIM.co.filter(g=>!OLD_FICT.includes(g.s)||busy(g.s));
+    for (const s of OLD_FICT) if (!SIM.co.some(g=>g.s===s)){ delete SIM.px[s]; delete SIM.bars[s]; delete SIM.ticks[s]; delete QG[s]; }
+  }
+  let have=new Set(SIM.co.map(g=>g.s));
+  for (const r of GS) if (!have.has(r.s)){ const g=JSON.parse(JSON.stringify(r)); SIM.co.splice(SIM.co.findIndex(x=>x.k)>=0?SIM.co.findIndex(x=>x.k):SIM.co.length,0,g); genHist(g, sd, true); }
+  have=new Set(SIM.co.map(g=>g.s));
   for (const a of ASSETS) if (!have.has(a.s)){ const g=JSON.parse(JSON.stringify(a)); SIM.co.push(g); genHist(g, sd, true); } }
 function saveTicks(){ lsSet("arena_ticks",{date:istNow().date, d:TR}); }
 
@@ -433,7 +465,7 @@ function initSim(speed){
   SIM = {v:1, speed, start:Date.now(), r:(Date.now()%2147483647)|0, G:0, mkt:0, px:{}, bars:{}, news:[], sched:[], ticks:{}, co:JSON.parse(JSON.stringify(GS.concat(ASSETS)))};
   const c = gameClock();
   const startDay = c.open? Math.floor(c.T/DAY) : Math.floor((c.T+1)/DAY);
-  for (const g of SIM.co) genHist(g, startDay, !!g.k);
+  for (const g of SIM.co) genHist(g, startDay, true);
   SIM.G = startDay*DAY-1;
   SIM.lastTick = SIM.G;
 }
@@ -445,6 +477,7 @@ function genHist(g, startDay, exact){
       for (let k=0;k<16;k++){ x*=Math.exp(mu/16+g.v*gauss()/4); x=Math.min(prev*1.1,Math.max(prev*0.9,x)); const p=roundTick(x); h=Math.max(h,p); l=Math.min(l,p); }
       bars.push([d,o,h,l,roundTick(x)]);
     }
+    if (exact){ const k=g.p/bars[bars.length-1][4]; for (const b of bars){ for (let z=1;z<5;z++) b[z]=roundTick(b[z]*k); } }
     const last=bars.pop(), prevC=bars[bars.length-1][4];
     SIM.bars[g.s]=bars;
     SIM.px[g.s]={x:last[4], p:last[4], prev:prevC, o:last[1], h:last[2], l:last[3], vol:0, mu:0};
@@ -1501,7 +1534,7 @@ function renderHeader(){
   const {r,nx}=rankOf(eq); $("rankName").textContent=r.n;
   if (nx){ $("rankNext").textContent=`${nx.n} için ${tl(nx.min-eq)}`; $("rankBar").style.width=Math.max(2,Math.min(100,(eq-r.min)/(nx.min-r.min)*100))+"%"; }
   else { $("rankNext").textContent="Zirvedesin"; $("rankBar").style.width="100%"; }
-  if (isSim()&&SIM){ $("fresh").textContent=`${dayLabel(Math.floor(SIM.G/DAY))} · ${gTime(SIM.G)} · Oyun Modu — şirketler ve fiyatlar kurgusaldır`; }
+  if (isSim()&&SIM){ $("fresh").textContent=`${dayLabel(Math.floor(SIM.G/DAY))} · ${gTime(SIM.G)} · Oyun Modu — gerçek şirket adları, oyun içi fiyat ve haberler`; }
   else if (lastData){ const mins=Math.round((Date.now()-lastData)/60000); $("fresh").textContent=`Son veri ${lastData.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"})} (${mins<1?"az önce":mins+" dk önce"}) · fiyatlar ~15 dk gecikmeli · dakikada bir yenilenir`; }
   else $("fresh").textContent= mcp? "Gerçek fiyatlar yükleniyor…" : "Gerçek veri bekleniyor…";
 }
@@ -1552,7 +1585,7 @@ function renderHist(){
   $("feeIn").value = S.feeRate;
   $("resetBtn").textContent = isSim()? "Oyunu sıfırla (yeni piyasa, 100.000 ₺)" : "Demo hesabı sıfırla (100.000 ₺)";
   renderStore(); renderSnd();
-  $("disc").textContent = isSim()? "Oyun Modu'ndaki şirketler, haberler ve fiyatlar tamamen kurgusaldır. Para sanaldır." : "Fiyatlar Borsa İstanbul'dan yaklaşık 15 dk gecikmeli gelir. Para tamamen sanaldır; bu bir oyundur, yatırım tavsiyesi değildir.";
+  $("disc").textContent = isSim()? "Oyun Modu'nda şirket adları gerçek (BIST 30 + CVKMD, PAHOL, ECILC) ama fiyat hareketleri, haberler, SPK olayları ve tahtacılık tamamen oyun içi simülasyondur; gerçek şirketlerle ilgili değildir. Para sanaldır, yatırım tavsiyesi değildir." : "Fiyatlar Borsa İstanbul'dan yaklaşık 15 dk gecikmeli gelir. Para tamamen sanaldır; bu bir oyundur, yatırım tavsiyesi değildir.";
 }
 function renderAll(){ renderHeader(); renderNews(); renderList(); if (view==="port"){ renderPort(); renderFin(); } if (view==="orders") renderOrders(); if (view==="hist") renderHist(); if (view==="career") renderCareer(); }
 
