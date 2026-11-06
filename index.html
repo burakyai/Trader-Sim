@@ -160,6 +160,7 @@ canvas{display:block;width:100%;height:210px}
   </section>
 
   <section id="v-career"><div id="careerBox"></div></section>
+  <section id="v-god"><div id="godBox"></div></section>
 
   <section id="v-orders">
     <div id="ordList"></div>
@@ -181,6 +182,7 @@ canvas{display:block;width:100%;height:210px}
   <button data-v="market" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Piyasa</button>
   <button data-v="port"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4h8v2"/></svg>Portföy</button>
   <button data-v="career"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg>Kariyer</button>
+  <button data-v="god" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Tanrı</button>
   <button data-v="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Emirler</button>
   <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Geçmiş</button>
 </div></nav>
@@ -226,6 +228,15 @@ canvas{display:block;width:100%;height:210px}
         <button class="btn" data-speed="rt">🕙 Gerçek saatle başla<br><small>10:00–18:00, hafta içi</small></button>
       </div>
     </div>
+    <div class="mcard" style="border-color:#f5b83d55">
+      <div class="mt">👑 Ultimate Trader</div>
+      <div class="md">Tanrı modu. Oyun Modu'nun aynısı ama her şey senin elinde: parayı, zamanı, taban/tavanı, kaldıracı, SPK'yı, şirketlerin fiyatını, oynaklığını ve trendini değiştir; yeni şirket halka arz et, kendi haberini yaz. Ayrı kayıt; normal oyununa dokunmaz.</div>
+      <div id="godCont"></div>
+      <div class="mbtns" id="godStart">
+        <button class="btn pri" data-speed="fast">👑 Hızlı başla<br><small>1 borsa günü = 8 dakika</small></button>
+        <button class="btn" data-speed="rt">🕙 Gerçek saatle<br><small>10:00–18:00, hafta içi</small></button>
+      </div>
+    </div>
     <div class="mcard">
       <div class="mt">📈 Gerçek Piyasa · Demo Hesap</div>
       <div class="md">Gerçek BIST hisseleri, ~15 dk gecikmeli gerçek fiyatlar. Sanal parayla, gerçek piyasaya karşı kendini dene.</div>
@@ -254,7 +265,13 @@ const GS = [
   {s:"KPDOT", n:"Kapadokya Otomotiv",    p:1045, v:.019, b:1.0, sec:"otomotiv", L:900000000},
   {s:"ZGRMD", n:"Zigana Madencilik",     p:64.2, v:.031, b:0.9, sec:"madencilik", L:250000000},
 ];
-const GMAP = Object.fromEntries(GS.map(g=>[g.s,g]));
+const DEFCFG = {band:0.10, maxLev:10, marginRate:0.0012, loanRate:0.002, spk:true, margin:true, tahtaMin:50000000, news:2, bias:0};
+function cfg(){ return (SIM&&SIM.cfg)||DEFCFG; }
+function CO(){ return (SIM&&SIM.co)||GS; }
+function CM(){ return Object.fromEntries(CO().map(g=>[g.s,g])); }
+function bandHi(prev,v){ const b=cfg().band; return b? Math.min(prev*(1+b), v) : v; }
+function bandLo(prev,v){ const b=cfg().band; return b? Math.max(prev*(1-Math.min(b,0.95)), v) : Math.max(0.01, v); }
+function bandOf(){ return isSim()? cfg().band : 0.1; }
 const NEWS_POS = ["{n} rekor bilanço açıkladı","{n} %100 bedelsiz sermaye artırımı kararı aldı","{n} büyük bir ihale kazandı","Analistler {n} için hedef fiyatı yükseltti","{n} yurt dışından dev sipariş aldı","{n} yüklü temettü dağıtacağını açıkladı","{n} geri alım programı başlattı"];
 const NEWS_NEG = ["{n} beklentilerin altında bilanço açıkladı","{n} hakkında SPK incelemesi başlatıldı","{n} tesisinde arıza: üretim durdu","{n} büyük ortağı blok pay sattı","Analistler {n} için 'sat' tavsiyesi verdi","{n} kritik ihaleyi kaybetti","{n} bedelli sermaye artırımı açıkladı"];
 const NEWS_MKT = [
@@ -304,12 +321,17 @@ function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){
 // ---------- state ----------
 const fresh = () => ({v:1, cash:START, pos:{}, orders:[], trades:[], fees:0, feeRate:1, watch:[], eqHist:[], dayStart:{date:"",eq:START}});
 const ACC = {real: fresh(), game: fresh()};
-let mode = null;            // "real" | "game"
+let mode = null;            // "real" | "game" | "god"
+function isSim(){ return mode==="game"||mode==="god"; }
 let S = ACC.real;           // active account
 const QR = {}, QG = {};     // quotes per mode
 let Q = QR;
 const TR = {};              // real intraday ticks
-let SIM = null;             // game market
+let SIM = null;             // game market (current sim slot)
+const SLOT = {game:{acct:null,sim:null}, god:{acct:null,sim:null}}; let curSlot="game";
+const LSK = k => k==="god"?"arena_god":"arena_sim", DOCK = k => k==="god"?"god":"sim";
+function useSlot(k){ if (curSlot===k) return; SLOT[curSlot]={acct:ACC.game, sim:SIM}; curSlot=k; ACC.game=SLOT[k].acct||fresh(); SIM=SLOT[k].sim; for (const x in QG) delete QG[x]; }
+function slotSim(k){ return k===curSlot? SIM : SLOT[k].sim; }
 let db=null, uid=null;
 
 const saver = {};
@@ -326,16 +348,18 @@ async function writeDoc(name, getter){
 const simDoc = () => { const c=Object.assign({},SIM); delete c.ticks; return {v:1, acct:ACC.game, sim:c}; };
 function save(){
   lsSet("arena_real", ACC.real);
-  if (SIM){ lsSet("arena_sim", {v:1, acct:ACC.game, sim:SIM}); }
-  if (mode==="game"&&SIM) writeDoc("sim", simDoc); else writeDoc("game", ()=>ACC.real);
+  if (SIM){ lsSet(LSK(curSlot), {v:1, acct:ACC.game, sim:SIM}); }
+  if (isSim()&&SIM) writeDoc(DOCK(curSlot), simDoc); else writeDoc("game", ()=>ACC.real);
 }
 function savePrefs(){ lsSet("arena_mode", mode); writeDoc("prefs", ()=>({mode})); }
 function load(){
   const l = lsGet("arena_state")||lsGet("arena_real"); if (l&&l.v===1) ACC.real = Object.assign(fresh(), l);
-  const g = lsGet("arena_sim"); if (g&&g.v===1&&g.sim){ ACC.game=Object.assign(fresh(), g.acct); SIM=g.sim; if(!SIM.ticks) SIM.ticks={}; }
+  for (const k of ["game","god"]){ const g = lsGet(LSK(k)); if (g&&g.v===1&&g.sim){ SLOT[k]={acct:Object.assign(fresh(), g.acct), sim:fixSim(g.sim)}; } }
+  ACC.game=SLOT.game.acct||fresh(); SIM=SLOT.game.sim; curSlot="game";
   const t = lsGet("arena_ticks"); if (t&&t.date===istNow().date) Object.assign(TR, t.d);
   mode = lsGet("arena_mode");
 }
+function fixSim(x){ if(!x) return x; if(!x.ticks) x.ticks={}; if(!x.co) x.co=JSON.parse(JSON.stringify(GS)); return x; }
 function saveTicks(){ lsSet("arena_ticks",{date:istNow().date, d:TR}); }
 
 // ---------- clock (mode aware) ----------
@@ -350,14 +374,16 @@ function rtClock(){
   if (mins>=1080) return {open:false, T:(idx+1)*DAY-1, txt:"Seans kapandı"};
   return {open:true, T:idx*DAY+Math.floor((mins-600)*60), txt:"Seans açık · "+fmtDur(1080-mins)+" kaldı"};
 }
+function fastE(){ if (SIM.ve==null){ SIM.ve=Math.max(0,(Date.now()-SIM.start)/1000); SIM.vAt=Date.now(); SIM.mult=1; } return SIM.ve + Math.max(0,Date.now()-SIM.vAt)/1000*SIM.mult; }
+function setMult(m){ SIM.ve=fastE(); SIM.vAt=Date.now(); SIM.mult=m; }
 function fastClock(){
-  const e=Math.max(0,(Date.now()-SIM.start)/1000), cyc=540, day=Math.floor(e/cyc), r=e-day*cyc;
-  if (r<480) return {open:true, T:day*DAY+Math.floor(r*60), txt:`Gün ${day+1} · kapanışa ${Math.ceil((480-r)/60)} dk`};
-  return {open:false, T:(day+1)*DAY-1, txt:`Gece · yeni gün ${Math.ceil(540-r)} sn sonra`};
+  const e=fastE(), cyc=540, day=Math.floor(e/cyc), r=e-day*cyc, m=SIM.mult||0, ps=m?"":" · ⏸";
+  if (r<480) return {open:true, T:day*DAY+Math.floor(r*60), txt: m? `Gün ${day+1} · kapanışa ${fmtDur((480-r)/60/m*1)}`.replace(" 0 dk"," <1 dk") : `Gün ${day+1} · ⏸ duraklatıldı`};
+  return {open:false, T:(day+1)*DAY-1, txt: m? `Gece · yeni gün ${Math.ceil((540-r)/m)} sn sonra` : `Gece${ps} duraklatıldı`};
 }
 function gameClock(){ return SIM.speed==="fast"?fastClock():rtClock(); }
 function session(){
-  if (mode==="game"&&SIM) return gameClock();
+  if (isSim()&&SIM) return gameClock();
   const n=istNow(); const mins=n.h*60+n.m;
   if (n.wd==="Sat"||n.wd==="Sun") return {open:false, txt:"Hafta sonu · kapalı"};
   if (mins<600) return {open:false, txt:"Açılışa "+fmtDur(600-mins)};
@@ -370,17 +396,21 @@ function dayLabel(day){
   return d.toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",timeZone:"UTC"});
 }
 function gTime(G){ const sec=((G%DAY)+DAY)%DAY; const m=600+Math.floor(sec/60); return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); }
-function dayKey(){ return mode==="game"&&SIM? "G"+Math.floor((SIM.G+1)/DAY) : istNow().date; }
+function dayKey(){ return isSim()&&SIM? "G"+Math.floor((SIM.G+1)/DAY) : istNow().date; }
 
 // ---------- game market engine ----------
 function rnd(){ let t=(SIM.r=(SIM.r+0x6D2B79F5)|0); t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }
 function gauss(){ let u=0; while(!u) u=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*rnd()); }
 function initSim(speed){
-  SIM = {v:1, speed, start:Date.now(), r:(Date.now()%2147483647)|0, G:0, mkt:0, px:{}, bars:{}, news:[], sched:[], ticks:{}};
+  SIM = {v:1, speed, start:Date.now(), r:(Date.now()%2147483647)|0, G:0, mkt:0, px:{}, bars:{}, news:[], sched:[], ticks:{}, co:JSON.parse(JSON.stringify(GS))};
   const c = gameClock();
   const startDay = c.open? Math.floor(c.T/DAY) : Math.floor((c.T+1)/DAY);
-  for (const g of GS){
-    let x = g.p*(0.8+0.4*rnd()); const bars=[];
+  for (const g of SIM.co) genHist(g, startDay);
+  SIM.G = startDay*DAY-1;
+  SIM.lastTick = SIM.G;
+}
+function genHist(g, startDay, exact){
+  { let x = g.p*(exact?1:(0.8+0.4*rnd())); const bars=[];
     for (let d=startDay-160; d<startDay; d++){
       const prev=x; x*=Math.exp(gauss()*g.v*0.4); const o=roundTick(x); let h=o,l=o;
       const mu=gauss()*g.v*0.25;
@@ -391,43 +421,41 @@ function initSim(speed){
     SIM.bars[g.s]=bars;
     SIM.px[g.s]={x:last[4], p:last[4], prev:prevC, o:last[1], h:last[2], l:last[3], vol:0, mu:0};
   }
-  SIM.G = startDay*DAY-1;
-  SIM.lastTick = SIM.G;
 }
 function scheduleDay(day){
-  SIM.sched=[]; const k=1+Math.floor(rnd()*3);
+  SIM.sched=[]; const k=Math.max(0,Math.round(cfg().news*(0.5+rnd())));
   for (let i=0;i<k;i++){
     const sec=Math.floor(600+rnd()*(DAY-1200));
     if (rnd()<0.28){ const m=NEWS_MKT[Math.floor(rnd()*NEWS_MKT.length)]; SIM.sched.push({sec, mkt:NEWS_MKT.indexOf(m)}); }
-    else { const g=GS[Math.floor(rnd()*GS.length)], pos=rnd()<0.52; const mag=(0.025+rnd()*0.055)*(pos?1:-1);
+    else { const g=CO()[Math.floor(rnd()*CO().length)], pos=rnd()<0.52; const mag=(0.025+rnd()*0.055)*(pos?1:-1);
       const arr=pos?NEWS_POS:NEWS_NEG; SIM.sched.push({sec, sym:g.s, chg:mag, t:arr[Math.floor(rnd()*arr.length)].replace("{n}",g.n)}); }
   }
   SIM.sched.sort((a,b)=>a.sec-b.sec);
 }
 function rollDay(){
   const day=Math.floor((SIM.G+1)/DAY)-1; // day being closed
-  SIM.mkt = gauss()*0.008;
-  for (const g of GS){
+  SIM.mkt = gauss()*0.008 + (cfg().bias||0);
+  for (const g of CO()){
     const q=SIM.px[g.s]; const b=SIM.bars[g.s];
     b.push([day,q.o,q.h,q.l,q.p]); if (b.length>250) b.shift();
     q.prev=q.p; q.x=q.p*Math.exp(gauss()*g.v*0.35+SIM.mkt*g.b*0.4);
-    q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x)); q.p=q.o=q.h=q.l=roundTick(q.x); q.vol=0;
-    q.mu=gauss()*g.v*0.3;
+    q.x=bandHi(q.prev,bandLo(q.prev,q.x)); q.p=q.o=q.h=q.l=roundTick(q.x); q.vol=0;
+    q.mu=gauss()*g.v*0.3 + (g.tr||0);
     SIM.ticks[g.s]=[[0,q.p]];
   }
   careerClose(day, simLive); finClose(simLive);
-  for (const g of GS){ const q=SIM.px[g.s]; SIM.ticks[g.s]=[[0,q.p]]; }
+  for (const g of CO()){ const q=SIM.px[g.s]; SIM.ticks[g.s]=[[0,q.p]]; }
   scheduleDay(day+1);
 }
 function applyNews(ev, live){
   const day=Math.floor(SIM.G/DAY);
   let item;
   if (ev.mkt!=null){ const m=NEWS_MKT[ev.mkt];
-    for (const g of GS){ const k=m.sec[g.sec]; const f = k!=null ? (m.base!==0? m.base*k : 0.012*k) : m.base*g.b;
-      const q=SIM.px[g.s]; q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x*(1+f))); q.mu+=f*0.4; }
+    for (const g of CO()){ const k=m.sec[g.sec]; const f = k!=null ? (m.base!==0? m.base*k : 0.012*k) : m.base*g.b;
+      const q=SIM.px[g.s]; q.x=bandHi(q.prev,bandLo(q.prev,q.x*(1+f))); q.mu+=f*0.4; }
     item={day, G:SIM.G, t:"🌍 "+m.t, up:m.base>0||(m.base===0&&false)};
   } else {
-    const q=SIM.px[ev.sym]; q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x*(1+ev.chg))); q.mu+=ev.chg*0.5;
+    const q=SIM.px[ev.sym]; q.x=bandHi(q.prev,bandLo(q.prev,q.x*(1+ev.chg))); q.mu+=ev.chg*0.5;
     item={day, G:SIM.G, t:ev.t, sym:ev.sym, up:ev.chg>0};
   }
   SIM.news.unshift(item); if (SIM.news.length>40) SIM.news.length=40;
@@ -436,10 +464,10 @@ function applyNews(ev, live){
 function stepPrices(dt){
   const f=dt/DAY, sq=Math.sqrt(f), mz=gauss();
   const oldSec=SIM.G%DAY; SIM.G+=dt; const sec=SIM.G%DAY;
-  for (const g of GS){
+  for (const g of CO()){
     const q=SIM.px[g.s];
     const ret=(SIM.mkt*g.b+q.mu)*f + (g.v*0.8*gauss()+0.012*g.b*mz)*sq;
-    q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x*Math.exp(ret)));
+    q.x=bandHi(q.prev,bandLo(q.prev,q.x*Math.exp(ret)));
     q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p;
     q.vol+= 2e7/Math.sqrt(g.p)*f*(0.5+rnd());
     if (Math.floor(sec/60)!==Math.floor(oldSec/60)||dt>=60){ const t=SIM.ticks[g.s]||(SIM.ticks[g.s]=[]); t.push([sec,q.p]); if (t.length>600) t.shift(); }
@@ -463,7 +491,7 @@ function advanceTo(T){
   return fills;
 }
 function syncQG(){
-  for (const g of GS){ const q=SIM.px[g.s], b=SIM.bars[g.s]||[];
+  for (const g of CO()){ const q=SIM.px[g.s], b=SIM.bars[g.s]||[];
     let hi=q.h, lo=q.l; for (const x of b){ if (x[2]>hi) hi=x[2]; if (x[3]<lo) lo=x[3]; }
     const old=QG[g.s]&&QG[g.s].price;
     QG[g.s]={price:q.p, prev:q.prev, vol:q.vol, hi52:hi, lo52:lo, name:g.n, flash: old&&old!==q.p? (q.p>old?"up":"down"):null};
@@ -471,7 +499,7 @@ function syncQG(){
 }
 let lastSimSave=0, gameTimer=null, simLive=false;
 function gameLoop(){
-  if (mode!=="game"||!SIM) return;
+  if (!isSim()||!SIM) return;
   const c=gameClock(); const before=SIM.G;
   const fills=advanceTo(c.T); marginCheck(true);
   if (fills.length && (c.T-before)>180){
@@ -479,7 +507,7 @@ function gameLoop(){
   }
   syncQG(); snapshotEq(); checkBroke(); renderAll(); if (cur) renderDetail(false);
   if (Date.now()-lastSimSave>60000 && SIM.G!==before){ lastSimSave=Date.now(); save(); }
-  else if (Date.now()-(gameLoop._ls||0)>8000){ gameLoop._ls=Date.now(); lsSet("arena_sim",{v:1, acct:ACC.game, sim:SIM}); }
+  else if (Date.now()-(gameLoop._ls||0)>8000){ gameLoop._ls=Date.now(); lsSet(LSK(curSlot),{v:1, acct:ACC.game, sim:SIM}); }
 }
 
 // ---------- career: jobs, tahtacılık (team + pool), SPK ----------
@@ -492,7 +520,7 @@ const JOBS = [
   {id:"uzman",  n:"Yatırım uzmanı",        w:5000, exp:40, eq:250000},
   {id:"fon",    n:"Fon yöneticisi",        w:9000, exp:60, eq:500000},
 ];
-const TAHTA_MIN = 50000000, TEAM_MAX = 5, BOSS_CUT = 0.20;
+const TEAM_MAX = 5, BOSS_CUT = 0.20;
 const ROLES = {
   sermaye: {n:"Sermayedar",           ic:"💰", d:"Havuza kendi parasını koyar; kârın %20'si patron olarak sana kalır."},
   bot:     {n:"Bot hesapçı",          ic:"🤖", d:"Emirleri yüzlerce hesaba böler: SPK radarı %35 daha yavaş ısınır."},
@@ -517,8 +545,8 @@ function hasRole(r){ return career().team.some(m=>m.role===r); }
 function botMult(){ return hasRole("bot")?0.65:1; }
 
 // --- liquidity / market impact (all game-mode market orders) ---
-function impactPct(sym, amt){ const g=GMAP[sym]; return Math.min(0.10, 0.30*amt/g.L); }
-function pushPrice(sym, pct){ const q=SIM.px[sym]; q.x=Math.min(q.prev*1.1, Math.max(q.prev*0.9, q.x*(1+pct))); q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p; }
+function impactPct(sym, amt){ const g=CM()[sym]; return Math.min(0.10, 0.30*amt/g.L); }
+function pushPrice(sym, pct){ const q=SIM.px[sym]; q.x=bandHi(q.prev,bandLo(q.prev, q.x*(1+pct))); q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p; }
 function marketImpact(sym, side, amt){ const k=impactPct(sym,amt); if (k<0.0005) return; pushPrice(sym, side==="buy"? k : -k*(1-fomo(sym))); }
 function fomo(sym){ const op=career().op; return op&&op.sym===sym? Math.min(0.6, op.pushes*0.12*(hasRole("fenomen")?1.3:1)) : 0; }
 
@@ -540,16 +568,16 @@ function genCands(){
 // --- pool helpers ---
 function poolVal(op){ return op.cash + op.qty*SIM.px[op.sym].p; }
 function myPoolShare(){ const op=ACC.game.c&&ACC.game.c.op; if (!op||!SIM) return 0; return poolVal(op)*op.myCommit/op.initial; }
-function riskP(h){ return h<35? 0 : (h-35)/65*0.45; }
+function riskP(h){ if (!cfg().spk) return 0; return h<35? 0 : (h-35)/65*0.45; }
 
 function careerClose(day, live){
   const c=career(), a=ACC.game;
   if (c.job){ const j=JOBS.find(x=>x.id===c.job); if (j){ a.cash+=j.w; c.exp++; clog(`💼 Maaş yattı: +${tl(j.w)} (${j.n})`); if (live) toast(`💼 Maaş yattı: +${tl(j.w)}`); } }
-  if (!c.unlocked && gameEq()>=TAHTA_MIN){ c.unlocked=true; genCands(); clog("🎯 Tahtacılık kilidi açıldı!"); if (live) toast("🎯 50 milyonu geçtin! Artık tahtacı olabilirsin — Kariyer'e bak."); }
+  if (!c.unlocked && gameEq()>=cfg().tahtaMin){ c.unlocked=true; genCands(); clog("🎯 Tahtacılık kilidi açıldı!"); if (live) toast("🎯 Tahtacılık eşiğini geçtin! Artık tahtacı olabilirsin — Kariyer'e bak."); }
   if (c.unlocked && (day%2===0 || !c.cands.length)) genCands();
   const op=c.op;
   if (op){
-    const g=GMAP[op.sym], q=SIM.px[op.sym];
+    const g=CM()[op.sym], q=SIM.px[op.sym];
     op.heat=Math.max(0, op.heat-6);
     if (op.pushes>=2) q.mu+=0.02*(hasRole("fenomen")?1.4:1);
     if (op.pushes>=3 && rnd()<0.08){ q.mu-=0.08; pushPrice(op.sym,-0.04); addNews(`${g.n} hissesinde büyük satıcı belirdi, tahta bozuldu`, false, live); clog(`⚠️ ${op.sym}: büyük satıcı geldi, tahta bozuldu.`); }
@@ -559,10 +587,10 @@ function careerClose(day, live){
   } else if (c.heatIdle){ c.heatIdle=Math.max(0,c.heatIdle-15); }
 }
 function spkHit(day, live){
-  const c=career(), op=c.op, g=GMAP[op.sym], a=ACC.game;
+  const c=career(), op=c.op, g=CM()[op.sym], a=ACC.game;
   let fine=Math.max(1e6, Math.round(poolVal(op)*0.2)); if (hasRole("avukat")) fine=Math.round(fine/2);
   a.cash-=fine; op.frozenUntil=day+1+5; op.heat=20; op.pushes=0; c.ban=day+1+15;
-  const q=SIM.px[op.sym]; q.x=q.prev*0.9; q.p=q.o=q.h=q.l=roundTick(q.x); q.mu=-0.03;
+  const q=SIM.px[op.sym]; q.x=bandLo(q.prev,q.prev*0.85); q.p=q.o=q.h=q.l=roundTick(q.x); q.mu=-0.03;
   addNews(`SPK, ${g.n} hissesinde piyasa dolandırıcılığı şüphesiyle tedbir kararı aldı`, false, live);
   clog(`🚨 SPK operasyonu! Ceza −${mtl(fine)}${hasRole("avukat")?" (avukat yarıya indirdi)":""}. Havuzdaki lotlar 5 gün dondu, 15 gün yeni tahta yok.`);
   if (live) toast(`🚨 SPK baskını! Ceza −${mtl(fine)}`);
@@ -570,8 +598,9 @@ function spkHit(day, live){
   if (left.length) clog(`🏃 Korkup ekipten ayrılanlar: ${left.join(", ")}.`);
 }
 function opAction(act, arg){
-  const c=career(); if (mode!=="game"||!SIM) return;
+  const c=career(); if (!isSim()||!SIM) return;
   if (act==="lev"||act==="loan"||act==="repay"){ finAction(act,arg); return; }
+  if (act.startsWith("g_")){ godAction(act,arg); return; }
   const day=simDay(), open=gameClock().open, op=c.op;
   const needOpen=()=>{ if (!open){ toast("Seans kapalı; tahta seans içinde oynanır."); return false; } return true; };
   const frozen=()=> op && op.frozenUntil && day<op.frozenUntil;
@@ -629,7 +658,7 @@ function opAction(act, arg){
     const cost=Math.max(1e6, Math.round(poolVal(op)*0.002)); if (op.cash<cost){ toast("Havuzda nakit yok."); return; }
     op.cash-=cost; op.lastRumor=day; op.heat=Math.min(100,op.heat+Math.round(22*botMult()));
     const mult=hasRole("fenomen")?1.6:1; pushPrice(op.sym,(0.03+rnd()*0.03)*mult); SIM.px[op.sym].mu+=0.02*mult;
-    addNews(`Sosyal medyada "${GMAP[op.sym].n} dev bir anlaşmaya imza atıyor" iddiası yayıldı`, true, true);
+    addNews(`Sosyal medyada "${CM()[op.sym].n} dev bir anlaşmaya imza atıyor" iddiası yayıldı`, true, true);
     clog(`📣 ${op.sym} için haber yayıldı (havuzdan −${mtl(cost)}).`);
   }
   else if (act==="close"){
@@ -648,11 +677,11 @@ function opAction(act, arg){
   if (act==="gojob"){ $("broke").classList.remove("show"); goView("career"); return; }
   save(); syncQG(); renderAll();
 }
-function frozenMsg(sym){ if (mode!=="game"||!SIM) return null; const c=career(); const f=c.frozen[sym]; if (f!=null && simDay()<f) return `SPK tedbiri: ${sym} ${f-simDay()} gün daha satılamaz.`; return null; }
+function frozenMsg(sym){ if (!isSim()||!SIM) return null; const c=career(); const f=c.frozen[sym]; if (f!=null && simDay()<f) return `SPK tedbiri: ${sym} ${f-simDay()} gün daha satılamaz.`; return null; }
 function heatColor(h){ return h<35?"var(--up)":h<65?"var(--acc)":"var(--down)"; }
 function renderCareer(){
   const el=$("careerBox"); if (!el) return;
-  if (mode!=="game"||!SIM){ el.innerHTML=`<div class="empty">Kariyer, iş ve tahtacılık sadece 🎮 Oyun Modu'nda var. Üstteki mod düğmesinden geçebilirsin.</div>`; el._h=""; return; }
+  if (!isSim()||!SIM){ el.innerHTML=`<div class="empty">Kariyer, iş ve tahtacılık sadece 🎮 Oyun Modu'nda var. Üstteki mod düğmesinden geçebilirsin.</div>`; el._h=""; return; }
   const c=career(), eq=gameEq(), day=simDay(), open=gameClock().open;
   // jobs
   const j=JOBS.find(x=>x.id===c.job);
@@ -665,12 +694,12 @@ function renderCareer(){
   // tahta
   let th=`<div class="card"><h3>🎯 Tahtacılık</h3>`;
   if (!c.unlocked){
-    const pct=Math.min(100,eq/TAHTA_MIN*100);
-    th+=`<div class="sub">Tahtacı olabilmek için toplam varlığının <b>50 milyon ₺</b>'yi geçmesi lazım. Bu parayla tek başına bile küçük bir hisseyi kıpırdatabilirsin; asıl güç, ekip kurup ortak havuzla hareket etmekte.</div><div class="bar" style="margin-top:8px"><i style="width:${Math.max(1,pct)}%"></i></div><div class="sub" style="margin-top:4px">${mtl(eq)} / 50 Mn ₺ · kalan ${mtl(Math.max(0,TAHTA_MIN-eq))}</div>`;
+    const pct=Math.min(100,eq/cfg().tahtaMin*100);
+    th+=`<div class="sub">Tahtacı olabilmek için toplam varlığının <b>${mtl(cfg().tahtaMin)}</b>'yi geçmesi lazım. Bu parayla tek başına bile küçük bir hisseyi kıpırdatabilirsin; asıl güç, ekip kurup ortak havuzla hareket etmekte.</div><div class="bar" style="margin-top:8px"><i style="width:${Math.max(1,pct)}%"></i></div><div class="sub" style="margin-top:4px">${mtl(eq)} / ${mtl(cfg().tahtaMin)} · kalan ${mtl(Math.max(0,cfg().tahtaMin-eq))}</div>`;
   } else {
     const op=c.op;
     if (op){
-      const q=SIM.px[op.sym], g=GMAP[op.sym], pv=poolVal(op), pnl=pv-op.initial, chg=(q.p/op.startPx-1)*100, fz=op.frozenUntil&&day<op.frozenUntil;
+      const q=SIM.px[op.sym], g=CM()[op.sym], pv=poolVal(op), pnl=pv-op.initial, chg=(q.p/op.startPx-1)*100, fz=op.frozenUntil&&day<op.frozenUntil;
       const avg=op.qty? op.cost/op.qty : 0, myP=pnl*op.myCommit/op.initial;
       th+=`<div class="sym">${op.sym} · ${g.n}</div><div class="sub">Fiyat ${fmt(q.p)} (başlangıçtan <span class="${cls(chg)}">${sgn(chg)}%</span>) · küçük yatırımcı ilgisi %${Math.round(fomo(op.sym)*100)}</div>
         <div class="grid2" style="margin-top:8px"><div class="kv"><div class="k">Havuz nakit</div><div class="v">${mtl(op.cash)}</div></div><div class="kv"><div class="k">Havuzdaki lot</div><div class="v">${fmt(op.qty,0)}${op.qty?` <span class="sub">ort. ${fmt(avg)}</span>`:""}</div></div>
@@ -687,7 +716,7 @@ function renderCareer(){
       const mine=Math.floor(S.cash*c.commit/100), capSum=c.team.reduce((a,m)=>a+(m.cap||0),0);
       th+=`<div class="sub" style="margin-bottom:6px">Havuza nakdinin ne kadarını koyacaksın?</div><div class="chips">${[25,50,75,100].map(p=>`<button data-act="commit" data-arg="${p}" style="${c.commit===p?"background:var(--acc);color:#111":""}">%${p}</button>`).join("")}</div>
         <div class="sub" style="margin:8px 0">Havuz: senin ${mtl(mine)} + ortaklar ${mtl(capSum)} = <b>${mtl(mine+capSum)}</b>${c.heatIdle?` · eski operasyonun radarı hâlâ ${c.heatIdle}`:""}</div>`;
-      th+=GS.slice().sort((a,b)=>a.L-b.L).map(g=>{ const q=SIM.px[g.s]; const k=Math.min(10,(mine+capSum)/g.L*30);
+      th+=CO().slice().sort((a,b)=>a.L-b.L).map(g=>{ const q=SIM.px[g.s]; const k=Math.min(10,(mine+capSum)/g.L*30);
         return `<div class="row" style="padding:8px 0"><div><div class="sym" style="font-size:14px">${g.s} <span class="pill">derinlik ${mtl(g.L)}</span></div><div class="sub">${g.n} · ${fmt(q.p)} ₺ · havuzun tamamı fiyatı ~%${fmt(k,1)} iter</div></div><button class="btn pri" data-act="start" data-arg="${g.s}">Tahta kur</button></div>`; }).join("");
     }
     // team
@@ -704,18 +733,18 @@ function renderCareer(){
   if (el._h!==h){ el.innerHTML=h; el._h=h; }
 }
 function checkBroke(){
-  if (mode!=="game"||!SIM) return; const c=career(); const a=ACC.game;
+  if (!isSim()||!SIM) return; const c=career(); const a=ACC.game;
   const broke = gameEq()<2000 && !Object.keys(a.pos).length && !a.orders.length && !c.op;
   if (broke && !c.broke){ c.broke=true; $("brokeTxt").textContent = c.job? "Paran bitti ama işin var. Maaşın her gün yatacak; biraz biriktirip borsaya geri dön." : "Paran bitti. Bir işe gir, maaşınla biriktir ve borsaya geri dön."; $("broke").classList.add("show"); clog("💸 Battın."); }
   if (!broke) c.broke=false;
 }
 
 // ---------- finance: leverage (margin) + bank loan (game mode) ----------
-const LEVS=[1,2,5,10], MARGIN_RATE=0.0012, LOAN_RATE=0.002;
+const ALL_LEVS=[1,2,5,10,25,50,100]; function LEVS_(){ return ALL_LEVS.filter(x=>x<=cfg().maxLev); }
 function fin(){ const a=ACC.game; if (!a.f) a.f={lev:1, loan:0, lastInt:0, mcalls:0}; return a.f; }
 function posValOf(a){ let v=0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
 function buyingPower(){
-  if (mode!=="game") return S.cash;
+  if (!isSim()) return S.cash;
   const f=fin(), eq=equity(); return S.cash + (f.lev-1)*Math.max(0,eq);
 }
 function loanLimit(){
@@ -726,7 +755,7 @@ function loanLimit(){
 function marginState(){
   const a=ACC.game, f=fin(), pv=posValOf(a), eq=gameEq();
   const mm=0.5/Math.max(1,f.lev); const debt=Math.max(0,-a.cash);
-  return {pv, eq, debt, mm, ratio: pv? eq/pv : 1, call: debt>0 && pv>0 && eq < mm*pv};
+  return {pv, eq, debt, mm, ratio: pv? eq/pv : 1, call: cfg().margin && debt>0 && pv>0 && eq < mm*pv};
 }
 function liquidateAll(reason, live){
   const a=ACC.game; let n=0;
@@ -744,7 +773,7 @@ function bankruptCheck(live){
   if (live) toast("🏚️ İflas ettin. Borçların silindi, sıfırdan başlıyorsun.");
 }
 function marginCheck(live){
-  if (mode!=="game"||!SIM) return;
+  if (!isSim()||!SIM) return;
   bankruptCheck(live);
   const ms=marginState(); if (!ms.call) return;
   const n=liquidateAll("margin", live); const f=fin(); f.mcalls++;
@@ -755,8 +784,8 @@ function marginCheck(live){
 }
 function finClose(live){
   const a=ACC.game, f=fin(); let int=0;
-  if (a.cash<0){ const i=-a.cash*MARGIN_RATE; a.cash-=i; int+=i; }
-  if (f.loan>0){ const i=f.loan*LOAN_RATE; a.cash-=i; int+=i; }
+  if (a.cash<0){ const i=-a.cash*cfg().marginRate; a.cash-=i; int+=i; }
+  if (f.loan>0){ const i=f.loan*cfg().loanRate; a.cash-=i; int+=i; }
   f.lastInt=Math.round(int*100)/100;
   // cash below what leverage allows (e.g. fines/interest with 1x) -> icra
   const allowed=-(f.lev-1)*Math.max(0,gameEq());
@@ -764,41 +793,161 @@ function finClose(live){
 }
 function finAction(act, arg){
   const a=ACC.game, f=fin();
-  if (act==="lev"){ const L=+arg; if (!LEVS.includes(L)) return;
+  if (act==="lev"){ const L=+arg; if (!LEVS_().includes(L)) return;
     if (L<f.lev && a.cash < -(L-1)*Math.max(0,gameEq())){ toast("Önce borcu azalt: bu kaldıraçta mevcut borcun limitin üstünde kalıyor."); return; }
     f.lev=L; clog(`⚙️ Kaldıraç ${L}x yapıldı.`); toast(L===1?"Kaldıraç kapatıldı.":`⚙️ Kaldıraç ${L}x — alım gücün ${L} katı. Dikkat: margin call!`); }
   else if (act==="loan"){ const lim=loanLimit(); const amt=Math.floor(lim*(+arg)/100); if (amt<1000){ toast("Kredi limitin yok. Bir işe gir ya da varlığını büyüt."); return; }
-    f.loan+=amt; a.cash+=amt; clog(`🏦 ${mtl(amt)} kredi çekildi (günlük %${fmt(LOAN_RATE*100,2)} faiz).`); toast(`🏦 Kredi hesabına yattı: +${mtl(amt)}`); }
+    f.loan+=amt; a.cash+=amt; clog(`🏦 ${mtl(amt)} kredi çekildi (günlük %${fmt(cfg().loanRate*100,2)} faiz).`); toast(`🏦 Kredi hesabına yattı: +${mtl(amt)}`); }
   else if (act==="repay"){ const pay=Math.min(f.loan, Math.max(0,a.cash)*(+arg)/100); if (pay<1){ toast("Ödeyecek nakit yok."); return; }
     f.loan-=pay; a.cash-=pay; if (f.loan<1) f.loan=0; clog(`✅ ${mtl(pay)} kredi borcu ödendi.`); toast(`✅ Borç ödendi: ${mtl(pay)}`); }
   save(); renderAll();
 }
 function renderFin(){
   const el=$("finBox"); if (!el) return;
-  if (mode!=="game"||!SIM){ if (el._h!=="x"){ el.innerHTML=""; el._h="x"; } return; }
+  if (!isSim()||!SIM){ if (el._h!=="x"){ el.innerHTML=""; el._h="x"; } return; }
   const a=ACC.game, f=fin(), ms=marginState(), lim=loanLimit();
   const dist = ms.debt>0 && ms.pv>0 ? Math.max(0, (ms.ratio-ms.mm)/(1-ms.mm)) : 1;
   const col = dist>0.5?"var(--up)":dist>0.2?"var(--acc)":"var(--down)";
   let h=`<div class="card"><h3>⚡ Kaldıraç (kredili işlem)</h3>
-    <div class="chips">${LEVS.map(L=>`<button data-act="lev" data-arg="${L}" style="${f.lev===L?"background:var(--acc);color:#111":""}">${L}x</button>`).join("")}</div>
+    <div class="chips">${LEVS_().map(L=>`<button data-act="lev" data-arg="${L}" style="${f.lev===L?"background:var(--acc);color:#111":""}">${L}x</button>`).join("")}</div>
     <div class="grid2" style="margin-top:10px"><div class="kv"><div class="k">Alım gücü</div><div class="v">${mtl(Math.max(0,buyingPower()))}</div></div><div class="kv"><div class="k">Kredili işlem borcu</div><div class="v ${ms.debt?"down":""}">${mtl(ms.debt)}</div></div></div>`;
   if (ms.debt>0) h+=`<div class="sub" style="margin-top:8px">Margin call'a uzaklık: teminat oranı %${fmt(ms.ratio*100,1)} · alt sınır %${fmt(ms.mm*100,1)}</div><div class="bar"><i style="width:${Math.max(2,dist*100)}%;background:${col}"></i></div>`;
-  h+=`<div class="sub" style="margin-top:8px">Kaldıraç kazancı da kaybı da katlar. Borç için günlük %${fmt(MARGIN_RATE*100,2)} faiz işler. Varlığın, pozisyonlarının %${fmt(ms.mm*100,1)}'inin altına düşerse hepsi zorla satılır.</div></div>`;
+  h+=`<div class="sub" style="margin-top:8px">Kaldıraç kazancı da kaybı da katlar. Borç için günlük %${fmt(cfg().marginRate*100,2)} faiz işler. Varlığın, pozisyonlarının %${fmt(ms.mm*100,1)}'inin altına düşerse hepsi zorla satılır.</div></div>`;
   h+=`<div class="card"><h3>🏦 Banka kredisi</h3>
     <div class="grid2"><div class="kv"><div class="k">Kredi borcun</div><div class="v ${f.loan?"down":""}">${mtl(f.loan)}</div></div><div class="kv"><div class="k">Kullanılabilir limit</div><div class="v">${mtl(lim)}</div></div></div>
     <div class="sub" style="margin:8px 0 4px">Kredi çek</div><div class="chips"><button data-act="loan" data-arg="25">%25</button><button data-act="loan" data-arg="50">%50</button><button data-act="loan" data-arg="100">Limitin tamamı</button></div>
     ${f.loan?`<div class="sub" style="margin:8px 0 4px">Borç öde (nakitten)</div><div class="chips"><button data-act="repay" data-arg="25">%25</button><button data-act="repay" data-arg="50">%50</button><button data-act="repay" data-arg="100">Ödeyebildiğin kadar</button></div>`:""}
-    <div class="sub" style="margin-top:8px">Limit, maaşına (120 günlük) ve varlığının yarısına göre belirlenir. Günlük %${fmt(LOAN_RATE*100,2)} faiz${f.lastInt?` · son gün ödenen faiz ${tl(f.lastInt)}`:""}. Faizi ödeyemezsen icra gelir, hisselerin satılır.</div></div>`;
+    <div class="sub" style="margin-top:8px">Limit, maaşına (120 günlük) ve varlığının yarısına göre belirlenir. Günlük %${fmt(cfg().loanRate*100,2)} faiz${f.lastInt?` · son gün ödenen faiz ${tl(f.lastInt)}`:""}. Faizi ödeyemezsen icra gelir, hisselerin satılır.</div></div>`;
   if (el._h!==h){ el.innerHTML=h; el._h=h; }
 }
 
+// ---------- Ultimate Trader: god panel ----------
+let godOpenCo=null;
+const gv = id => { const e=$(id); return e? e.value : ""; };
+const gnum = (id, def) => { let t=String(gv(id)).trim().replace(/\s|₺/g,""); if (!t) return def;
+  if (t.includes(",")) t=t.replace(/\./g,"").replace(",","."); else if ((t.match(/\./g)||[]).length>1) t=t.replace(/\./g,"");
+  const v=parseFloat(t); return isFinite(v)? v : def; };
+function godAction(act, arg){
+  if (mode!=="god"||!SIM) return;
+  const C=SIM.cfg, a=ACC.game, c=career(), f=fin();
+  switch(act){
+    case "g_add": a.cash+=+arg; toast(`💰 +${mtl(+arg)}`); break;
+    case "g_setcash": { const v=gnum("g_cash",null); if (v==null) return toast("Geçerli bir tutar yaz."); a.cash=v; toast(`💰 Nakit ${mtl(v)} yapıldı`); break; }
+    case "g_debt": f.loan=0; if (a.cash<0) a.cash=0; toast("🧽 Tüm borçlar silindi"); break;
+    case "g_unlock": c.unlocked=true; if (!c.cands.length) genCands(); toast("🎯 Tahtacılık açıldı"); break;
+    case "g_exp": c.exp+=30; toast("💼 +30 gün tecrübe"); break;
+    case "g_spk": c.ban=-1e9; c.frozen={}; c.heatIdle=0; if (c.op){ c.op.heat=0; c.op.frozenUntil=0; } toast("🕊️ SPK temizlendi"); break;
+    case "g_speed": { const m=+arg; if (SIM.speed!=="fast"){ toFast(); } setMult(m); toast(m? `⏱ Hız ${m}x` : "⏸ Piyasa duraklatıldı"); break; }
+    case "g_tofast": toFast(); setMult(1); toast("⏱ Hızlı saate geçildi"); break;
+    case "g_skip": { if (SIM.speed!=="fast") toFast(); const e=fastE(); SIM.ve=(Math.floor(e/540)+1)*540; SIM.vAt=Date.now(); toast("⏭ Sonraki güne geçildi"); gameLoop(); break; }
+    case "g_band": C.band=+arg; toast(C.band? `Taban/tavan ±%${Math.round(C.band*100)}` : "Taban/tavan kaldırıldı"); break;
+    case "g_lev": C.maxLev=+arg; if (f.lev>C.maxLev) f.lev=C.maxLev; toast(`Azami kaldıraç ${C.maxLev}x`); break;
+    case "g_bias": C.bias=+arg; SIM.mkt=C.bias; toast("Piyasa yönü değişti"); break;
+    case "g_news": C.news=+arg; toast(`Günde ~${C.news} haber`); break;
+    case "g_tspk": C.spk=!C.spk; toast(C.spk?"🚨 SPK açık":"SPK kapalı — radar seni yakalamaz"); break;
+    case "g_tmargin": C.margin=!C.margin; toast(C.margin?"Margin call açık":"Margin call kapalı"); break;
+    case "g_rules": {
+      C.tahtaMin=Math.max(0,gnum("g_tmin",C.tahtaMin));
+      C.marginRate=Math.max(0,gnum("g_mr",C.marginRate*100)/100); C.loanRate=Math.max(0,gnum("g_lr",C.loanRate*100)/100);
+      a.feeRate=Math.max(0,gnum("g_fee",a.feeRate));
+      toast("📜 Kurallar kaydedildi"); break; }
+    case "g_co": godOpenCo = godOpenCo===arg? null : arg; break;
+    case "g_cosave": {
+      const g=CM()[arg]; if (!g) return; const q=SIM.px[arg];
+      g.n = (gv("co_n").trim()||g.n).slice(0,40);
+      g.v = Math.max(0.001, gnum("co_v", g.v*100)/100);
+      g.tr = gnum("co_tr", (g.tr||0)*100)/100;
+      g.L = Math.max(1e6, gnum("co_L", g.L/1e6)*1e6);
+      g.b = Math.max(0, gnum("co_b", g.b));
+      const np=gnum("co_p", q.p);
+      if (np>0 && Math.abs(np-q.p)>1e-9){ const p=roundTick(np); q.x=q.p=q.prev=q.o=q.h=q.l=p; SIM.ticks[arg]=[[SIM.G%DAY,p]]; }
+      q.mu=(g.tr||0);
+      toast(`🏢 ${arg} güncellendi`); break; }
+    case "g_codel": {
+      if (ACC.game.pos[arg] || ACC.game.orders.some(o=>o.sym===arg) || (c.op&&c.op.sym===arg)) return toast("Bu şirkette pozisyonun ya da emrin var, önce kapat.");
+      if (SIM.co.length<=1) return toast("En az bir şirket kalmalı.");
+      SIM.co=SIM.co.filter(g=>g.s!==arg); delete SIM.px[arg]; delete SIM.bars[arg]; delete SIM.ticks[arg]; delete QG[arg]; godOpenCo=null;
+      toast(`🗑️ ${arg} borsadan çıkarıldı`); break; }
+    case "g_coadd": {
+      const s=gv("na_s").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6), n=gv("na_n").trim().slice(0,40), p=gnum("na_p",0);
+      if (s.length<3) return toast("Kod en az 3 harf olsun.");
+      if (CM()[s]) return toast("Bu kod zaten var.");
+      if (!n || !(p>0)) return toast("Ad ve fiyat gir.");
+      const g={s, n, p, v:Math.max(0.001,gnum("na_v",3)/100), b:1, sec:"diger", L:Math.max(1e6,gnum("na_L",300)*1e6), tr:0};
+      SIM.co.push(g); genHist(g, Math.floor((SIM.G+1)/DAY), true);
+      const q=SIM.px[s], pp=roundTick(p); q.x=q.p=q.prev=q.o=q.h=q.l=pp; SIM.ticks[s]=[[0,pp]];
+      toast(`🏢 ${s} halka arz oldu!`); addNews(`${n} (${s}) borsada işlem görmeye başladı`, true, false); break; }
+    case "g_pub": {
+      const sym=gv("nw_s"), pct=gnum("nw_p",0)/100, txt=gv("nw_t").trim();
+      if (!pct) return toast("Etki yüzdesi gir (örn. 8 ya da -6).");
+      if (sym==="ALL"){ for (const g of CO()){ pushPrice(g.s, pct*(g.b||1)); SIM.px[g.s].mu+=pct*0.3; } }
+      else { if (!SIM.px[sym]) return; pushPrice(sym, pct); SIM.px[sym].mu+=pct*0.4; }
+      const name = sym==="ALL"? "Piyasa" : CM()[sym].n;
+      addNews(txt || `${name}: ${pct>0?"beklenmedik iyi haber":"sert kötü haber"}`, pct>0, true); break; }
+    default: return;
+  }
+  save(); syncQG(); renderAll(); renderGod();
+}
+function toFast(){ const d=Math.floor(SIM.G/DAY), sec=SIM.G-d*DAY; SIM.speed="fast"; SIM.ve=d*540+Math.min(479.9,(sec+1)/60); SIM.vAt=Date.now(); SIM.mult=1; }
+function chip(act,arg,label,on){ return `<button data-act="${act}" data-arg="${arg}" style="${on?"background:var(--acc);color:#111":""}">${label}</button>`; }
+function renderGod(){
+  const el=$("godBox"); if (!el) return;
+  if (mode!=="god"||!SIM){ el.innerHTML=`<div class="empty">Tanrı paneli sadece 👑 Ultimate Trader modunda açılır.</div>`; return; }
+  const C=SIM.cfg, a=ACC.game, c=career(), fast=SIM.speed==="fast", m=fast?(SIM.mult==null?1:SIM.mult):null;
+  let h=`<div class="card"><h3>💰 Para ve hesap</h3>
+    <div class="chips">${chip("g_add",1e6,"+1 Mn")}${chip("g_add",1e8,"+100 Mn")}${chip("g_add",1e9,"+1 Mr")}${chip("g_add",1e10,"+10 Mr")}</div>
+    <div class="add" style="padding:10px 0 0"><input id="g_cash" inputmode="decimal" placeholder="Nakdi şu tutara ayarla (₺)" style="text-transform:none"><button class="btn pri" data-act="g_setcash">Ayarla</button></div>
+    <div class="chips" style="margin-top:8px">${chip("g_debt",0,"Borçları sil")}${chip("g_unlock",0,c.unlocked?"Tahta açık ✓":"Tahtacılığı aç")}${chip("g_exp",0,"+30 gün tecrübe")}${chip("g_spk",0,"SPK'yı temizle")}</div></div>`;
+  h+=`<div class="card"><h3>⏱ Zaman</h3>${fast?`<div class="chips">${chip("g_speed",0,"⏸ Durdur",m===0)}${chip("g_speed",1,"1x · 8 dk/gün",m===1)}${chip("g_speed",4,"4x · 2 dk",m===4)}${chip("g_speed",16,"16x · 30 sn",m===16)}</div>`
+      : `<div class="sub" style="margin-bottom:6px">Bu oyun gerçek saatle akıyor (10:00–18:00).</div><div class="chips">${chip("g_tofast",0,"Hızlı saate geç")}</div>`}
+    <div class="chips" style="margin-top:8px">${chip("g_skip",0,"⏭ Sonraki güne atla")}</div></div>`;
+  h+=`<div class="card"><h3>📜 Piyasa kuralları</h3>
+    <div class="sub">Taban / tavan</div><div class="chips">${[0.05,0.1,0.2,0.5,0].map(b=>chip("g_band",b,b?`±%${b*100}`:"Limitsiz",C.band===b)).join("")}</div>
+    <div class="sub" style="margin-top:8px">Azami kaldıraç</div><div class="chips">${[10,25,50,100].map(x=>chip("g_lev",x,x+"x",C.maxLev===x)).join("")}</div>
+    <div class="sub" style="margin-top:8px">Piyasa yönü</div><div class="chips">${[[-0.015,"🐻 Ayı"],[0,"Nötr"],[0.01,"🐂 Boğa"],[0.03,"🚀 Çılgın boğa"]].map(([v,l])=>chip("g_bias",v,l,C.bias===v)).join("")}</div>
+    <div class="sub" style="margin-top:8px">Günlük haber sayısı</div><div class="chips">${[0,2,5,10].map(x=>chip("g_news",x,x?("~"+x):"Haber yok",C.news===x)).join("")}</div>
+    <div class="chips" style="margin-top:8px">${chip("g_tspk",0,C.spk?"🚨 SPK açık":"SPK kapalı",C.spk)}${chip("g_tmargin",0,C.margin?"Margin call açık":"Margin call kapalı",C.margin)}</div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="field" style="padding:0"><label>Tahtacılık eşiği (₺)</label><input id="g_tmin" inputmode="decimal" value="${Math.round(C.tahtaMin)}"></div>
+      <div class="field" style="padding:0"><label>Komisyon (binde)</label><input id="g_fee" inputmode="decimal" value="${a.feeRate}"></div>
+      <div class="field" style="padding:0"><label>Kredili işlem faizi (%/gün)</label><input id="g_mr" inputmode="decimal" value="${+(C.marginRate*100).toFixed(4)}"></div>
+      <div class="field" style="padding:0"><label>Kredi faizi (%/gün)</label><input id="g_lr" inputmode="decimal" value="${+(C.loanRate*100).toFixed(4)}"></div>
+    </div><button class="btn pri" data-act="g_rules" style="width:100%;margin-top:10px">Kuralları kaydet</button></div>`;
+  h+=`<div class="card"><h3>🏢 Şirketler (${CO().length})</h3>`;
+  for (const g of CO()){ const q=SIM.px[g.s]; const open=godOpenCo===g.s;
+    h+=`<div class="row" style="padding:9px 0"><div><div class="sym" style="font-size:14px">${g.s} <span class="pill">derinlik ${mtl(g.L)}</span></div><div class="sub">${esc(g.n)} · ${fmt(q.p)} ₺ · oynaklık %${fmt(g.v*100,1)}${g.tr?` · trend ${g.tr>0?"+":""}%${fmt(g.tr*100,1)}/gün`:""}</div></div><button class="btn" data-act="g_co" data-arg="${g.s}">${open?"Kapat":"Düzenle"}</button></div>`;
+    if (open) h+=`<div style="padding:4px 0 12px"><div class="grid2">
+      <div class="field" style="padding:0;grid-column:1/3"><label>Şirket adı</label><input id="co_n" value="${esc(g.n)}" style="font-size:15px"></div>
+      <div class="field" style="padding:0"><label>Fiyat (₺) — yazarsan o fiyata çekilir</label><input id="co_p" inputmode="decimal" value="${q.p}"></div>
+      <div class="field" style="padding:0"><label>Günlük oynaklık (%)</label><input id="co_v" inputmode="decimal" value="${+(g.v*100).toFixed(2)}"></div>
+      <div class="field" style="padding:0"><label>Trend (%/gün, + yükseliş)</label><input id="co_tr" inputmode="decimal" value="${+((g.tr||0)*100).toFixed(2)}"></div>
+      <div class="field" style="padding:0"><label>Derinlik (Mn ₺)</label><input id="co_L" inputmode="decimal" value="${Math.round(g.L/1e6)}"></div>
+      <div class="field" style="padding:0"><label>Piyasaya duyarlılık (beta)</label><input id="co_b" inputmode="decimal" value="${g.b}"></div>
+    </div><div class="mbtns" style="margin-top:10px"><button class="btn pri" data-act="g_cosave" data-arg="${g.s}">Kaydet</button><button class="btn sell" data-act="g_codel" data-arg="${g.s}">Borsadan çıkar</button></div></div>`;
+  }
+  h+=`<div class="sub" style="margin:12px 0 6px">➕ Yeni şirket halka arz et</div><div class="grid2">
+    <div class="field" style="padding:0"><label>Kod</label><input id="na_s" maxlength="6" placeholder="ANUZY" style="text-transform:uppercase"></div>
+    <div class="field" style="padding:0"><label>Fiyat (₺)</label><input id="na_p" inputmode="decimal" placeholder="25"></div>
+    <div class="field" style="padding:0;grid-column:1/3"><label>Şirket adı</label><input id="na_n" placeholder="Anadolu Uzay" style="font-size:15px"></div>
+    <div class="field" style="padding:0"><label>Oynaklık (%/gün)</label><input id="na_v" inputmode="decimal" value="3"></div>
+    <div class="field" style="padding:0"><label>Derinlik (Mn ₺)</label><input id="na_L" inputmode="decimal" value="300"></div>
+  </div><button class="btn pri" data-act="g_coadd" style="width:100%;margin-top:10px">Halka arz et</button></div>`;
+  h+=`<div class="card"><h3>📰 Haber yaz</h3>
+    <div class="field" style="padding:0"><label>Hangi hisse?</label><select id="nw_s" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px"><option value="ALL">🌍 Tüm piyasa</option>${CO().map(g=>`<option value="${g.s}">${g.s} · ${esc(g.n)}</option>`).join("")}</select></div>
+    <div class="grid2" style="margin-top:8px"><div class="field" style="padding:0"><label>Etki (%)</label><input id="nw_p" inputmode="decimal" placeholder="+8 ya da -6"></div><div></div>
+    <div class="field" style="padding:0;grid-column:1/3"><label>Haber metni (boş bırakabilirsin)</label><input id="nw_t" placeholder="Dev ihaleyi kazandı" style="font-size:15px"></div></div>
+    <button class="btn pri" data-act="g_pub" style="width:100%;margin-top:10px">📣 Yayınla</button>
+    <div class="sub" style="margin-top:8px">Etki taban/tavan sınırını aşamaz; sınırı kaldırırsan istediğin kadar oynatırsın.</div></div>`;
+  el.innerHTML=h;
+}
+
 // ---------- valuation ----------
-function equity(){ let v=S.cash + (mode==="game"? myPoolShare()-fin().loan:0); for (const o of S.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
+function equity(){ let v=S.cash + (isSim()? myPoolShare()-fin().loan:0); for (const o of S.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
 function stockVal(){ let v=0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
 function rankOf(eq){ let r=RANKS[0], nx=null; for (let i=0;i<RANKS.length;i++){ if (eq>=RANKS[i].min){ r=RANKS[i]; nx=RANKS[i+1]||null; } } return {r,nx}; }
 function feeOf(amount){ return Math.round(amount*S.feeRate/1000*100)/100; }
 function watchList(){
-  if (mode==="game") return GS.map(g=>g.s);
+  if (isSim()) return CO().map(g=>g.s);
   const w=[...BASE]; for (const s of S.watch) if(!w.includes(s)) w.push(s); for (const s of Object.keys(S.pos)) if(!w.includes(s)) w.push(s); return w;
 }
 
@@ -901,12 +1050,12 @@ function runOrders(priceOf, live){
     fills.push(o);
     if (live){ if (r.ok) toast(`${o.type==="stp"?"🛑 Stop":"✅ Limit"} gerçekleşti: ${o.sym} ${o.qty} lot @ ${fmt(fillPx)}`); else toast(`⚠️ ${o.sym} emri iptal: ${r.err}`); }
   }
-  if (fills.length && mode==="game") save();
+  if (fills.length && isSim()) save();
   return fills;
 }
 function execute(side,sym,qty,px,via,reserved=0){
   const amt = Math.round(qty*px*100)/100, fee = feeOf(amt);
-  const g = mode==="game"&&SIM ? dayLabel(Math.floor(SIM.G/DAY))+" "+gTime(SIM.G) : null;
+  const g = isSim()&&SIM ? dayLabel(Math.floor(SIM.G/DAY))+" "+gTime(SIM.G) : null;
   if (side==="buy"){
     const avail = buyingPower() + reserved;
     if (amt+fee > avail+0.001) { S.cash += reserved; return {ok:false, err:"nakit yetersiz"}; }
@@ -938,33 +1087,33 @@ function snapshotEq(){
 // ---------- render ----------
 function renderHeader(){
   const ses=session(); $("sess").classList.toggle("open",ses.open); $("sessTxt").textContent=ses.txt;
-  $("modeBtn").textContent = mode==="game"? `🎮 Oyun · ${SIM&&SIM.speed==="fast"?"Hızlı":"Gerçek saat"} ▾` : "📈 Gerçek Piyasa ▾";
+  $("modeBtn").textContent = mode==="god"? "👑 Ultimate ▾" : isSim()? `🎮 Oyun · ${SIM&&SIM.speed==="fast"?"Hızlı":"Gerçek saat"} ▾` : "📈 Gerçek Piyasa ▾";
   const eq=equity(), pnl=eq-START;
-  $("eq").textContent=tl(eq);
-  $("eqPnl").innerHTML=`<span class="${cls(pnl)}">${sgn(pnl)} ₺ (${sgn(pnl/START*100)}%)</span>`;
+  const big=Math.abs(eq)>=1e7; $("eq").textContent= big? mtl(eq) : tl(eq); $("eq").style.fontSize = Math.abs(eq)>=1e6&&!big? "22px" : "";
+  const pp=pnl/START*100; $("eqPnl").innerHTML=`<span class="${cls(pnl)}">${Math.abs(pnl)>=1e7?(pnl>=0?"+":"−")+mtl(Math.abs(pnl)):sgn(pnl)+" ₺"} (${Math.abs(pp)>=1e4? (pp>0?"+":"")+fmt(pp,0) : sgn(pp)}%)</span>`;
   const {r,nx}=rankOf(eq); $("rankName").textContent=r.n;
   if (nx){ $("rankNext").textContent=`${nx.n} için ${tl(nx.min-eq)}`; $("rankBar").style.width=Math.max(2,Math.min(100,(eq-r.min)/(nx.min-r.min)*100))+"%"; }
   else { $("rankNext").textContent="Zirvedesin"; $("rankBar").style.width="100%"; }
-  if (mode==="game"&&SIM){ $("fresh").textContent=`${dayLabel(Math.floor(SIM.G/DAY))} · ${gTime(SIM.G)} · Oyun Modu — şirketler ve fiyatlar kurgusaldır`; }
+  if (isSim()&&SIM){ $("fresh").textContent=`${dayLabel(Math.floor(SIM.G/DAY))} · ${gTime(SIM.G)} · ${mode==="god"?"👑 Ultimate Trader":"Oyun Modu"} — şirketler ve fiyatlar kurgusaldır`; }
   else if (lastData){ const mins=Math.round((Date.now()-lastData)/60000); $("fresh").textContent=`Son veri ${lastData.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"})} (${mins<1?"az önce":mins+" dk önce"}) · fiyatlar ~15 dk gecikmeli · dakikada bir yenilenir`; }
   else $("fresh").textContent= mcp? "Gerçek fiyatlar yükleniyor…" : "Gerçek veri bekleniyor…";
 }
 function chgOf(s){ const q=Q[s]; if (!q||!q.price||!q.prev) return null; return (q.price/q.prev-1)*100; }
 function fmtBig(n){ return n>=1e9?fmt(n/1e9,1)+" Mr":n>=1e6?fmt(n/1e6,1)+" Mn":n>=1e3?fmt(n/1e3,0)+" B":fmt(n,0); }
 function renderNews(){
-  if (mode!=="game"||!SIM){ $("news").innerHTML=""; return; }
+  if (!isSim()||!SIM){ $("news").innerHTML=""; return; }
   const items=SIM.news.slice(0,3);
   $("news").innerHTML = `<div class="newsbox"><div class="h"><span>📰 Haber akışı</span><span>${SIM.news.length? "":"Henüz haber yok"}</span></div>${items.map(n=>`<div class="ni"><span class="tm">${dayLabel(n.day)} ${gTime(n.G)}</span><span class="${n.up?"up":"down"}">${n.up?"▲":"▼"}</span> ${esc(n.t)}</div>`).join("")}</div>`;
 }
 function renderList(){
   $("list").innerHTML = watchList().map(s=>{
     const q=Q[s]||{}; const c=chgOf(s); const own=S.pos[s];
-    const sub = mode==="game"? (GMAP[s]?GMAP[s].n:"") : (q.vol?"Hacim "+fmtBig(q.vol):"—");
+    const sub = isSim()? (CM()[s]?CM()[s].n:"") : (q.vol?"Hacim "+fmtBig(q.vol):"—");
     return `<div class="row" data-s="${s}"><div><div class="sym">${s}${own?`<span class="pill">${fmt(own.qty,0)} lot</span>`:""}</div><div class="sub">${esc(sub)}</div></div>
       <div class="px"><b class="${q.flash?"flash-"+q.flash:""}">${q.price?fmt(q.price):"—"}</b><span class="chg ${c==null?"flat":c>0?"up":c<0?"down":"flat"}">${c==null?"—":sgn(c)+"%"}</span></div></div>`;
   }).join("");
   for (const s in Q) if (Q[s]) Q[s].flash=null;
-  $("addRow").style.display = mode==="game"?"none":"";
+  $("addRow").style.display = isSim()?"none":"";
 }
 function renderPort(){
   const eq=equity();
@@ -983,7 +1132,7 @@ function renderPort(){
 function renderOrders(){
   $("ordList").innerHTML = S.orders.length? S.orders.map(o=>`<div class="row"><div><div class="sym">${o.sym} <span class="pill">${o.side==="buy"?"ALIŞ":"SATIŞ"} · ${o.type==="lmt"?"Limit":"Stop"}</span></div>
      <div class="sub">${fmt(o.qty,0)} lot @ ${fmt(o.px)} · şu an ${Q[o.sym]&&Q[o.sym].price?fmt(Q[o.sym].price):"—"}</div></div><button class="btn" data-cancel="${o.id}">İptal</button></div>`).join("")
-   : `<div class="empty">Bekleyen emrin yok. ${mode==="game"?"Oyun Modu'nda limit ve stop emirleri sen uygulamada olmasan da piyasa ne zaman o fiyata gelirse gerçekleşir.":"Limit ve stop emirleri fiyat gelince kendiliğinden gerçekleşir; uygulama kapalıyken açtığın andaki fiyata göre kontrol edilir."}</div>`;
+   : `<div class="empty">Bekleyen emrin yok. ${isSim()?"Oyun Modu'nda limit ve stop emirleri sen uygulamada olmasan da piyasa ne zaman o fiyata gelirse gerçekleşir.":"Limit ve stop emirleri fiyat gelince kendiliğinden gerçekleşir; uygulama kapalıyken açtığın andaki fiyata göre kontrol edilir."}</div>`;
 }
 function renderHist(){
   $("histList").innerHTML = S.trades.length? S.trades.slice(0,80).map(t=>{
@@ -992,8 +1141,8 @@ function renderHist(){
       <div class="px">${t.pnl==null?`<span class="mut">${tl(t.qty*t.px)}</span>`:`<span class="pnl ${cls(t.pnl)}">${sgn(t.pnl)} ₺</span>`}</div></div>`;
   }).join("") : `<div class="empty">İşlem geçmişi boş.</div>`;
   $("feeIn").value = S.feeRate;
-  $("resetBtn").textContent = mode==="game"? "Oyunu sıfırla (yeni piyasa, 100.000 ₺)" : "Demo hesabı sıfırla (100.000 ₺)";
-  $("disc").textContent = mode==="game"? "Oyun Modu'ndaki şirketler, haberler ve fiyatlar tamamen kurgusaldır. Para sanaldır." : "Fiyatlar Borsa İstanbul'dan yaklaşık 15 dk gecikmeli gelir. Para tamamen sanaldır; bu bir oyundur, yatırım tavsiyesi değildir.";
+  $("resetBtn").textContent = isSim()? "Oyunu sıfırla (yeni piyasa, 100.000 ₺)" : "Demo hesabı sıfırla (100.000 ₺)";
+  $("disc").textContent = isSim()? "Oyun Modu'ndaki şirketler, haberler ve fiyatlar tamamen kurgusaldır. Para sanaldır." : "Fiyatlar Borsa İstanbul'dan yaklaşık 15 dk gecikmeli gelir. Para tamamen sanaldır; bu bir oyundur, yatırım tavsiyesi değildir.";
 }
 function renderAll(){ renderHeader(); renderNews(); renderList(); if (view==="port"){ renderPort(); renderFin(); } if (view==="orders") renderOrders(); if (view==="hist") renderHist(); if (view==="career") renderCareer(); }
 
@@ -1031,7 +1180,7 @@ let cur=null, side="buy", otype="mkt", ctab="intra"; const HIST={};
 function openDetail(s){ cur=s; $("oQty").value=""; $("oPx").value=""; otype="mkt"; setSide("buy"); setType("mkt"); $("sheet").classList.add("show"); $("sheetBg").classList.add("show"); renderDetail(true); }
 function closeDetail(){ cur=null; $("sheet").classList.remove("show"); $("sheetBg").classList.remove("show"); }
 async function loadHist(s, period){
-  if (mode==="game"){
+  if (isSim()){
     const n = period==="3mo"?63:250; const q=SIM.px[s];
     const bars=(SIM.bars[s]||[]).slice(-(n-1)).map(b=>({lbl:dayLabel(b[0]),o:b[1],h:b[2],l:b[3],c:b[4]}));
     bars.push({lbl:dayLabel(Math.floor(SIM.G/DAY)),o:q.o,h:q.h,l:q.l,c:q.p}); return bars;
@@ -1043,22 +1192,22 @@ async function loadHist(s, period){
 let lastIntra=0;
 async function renderDetail(first){
   const s=cur; if (!s) return; const q=Q[s]||{}; const c=chgOf(s);
-  $("dSym").textContent = s + (mode==="game"&&GMAP[s]? " · "+GMAP[s].n : "");
+  $("dSym").textContent = s + (isSim()&&CM()[s]? " · "+CM()[s].n : "");
   $("dPx").textContent=q.price?fmt(q.price)+" ₺":"—";
   $("dChg").innerHTML = c==null?"":`<span class="${cls(c)}">${sgn(q.price-q.prev)} (${sgn(c)}%)</span> <span class="mut">bugün</span>`;
   const own=S.pos[s];
-  $("dInfo").textContent = [q.prev?`Taban ${fmt(roundTick(q.prev*0.9))} · Tavan ${fmt(roundTick(q.prev*1.1))}`:"", q.hi52?`${mode==="game"?"Dönem":"52H"} ${fmt(q.lo52)}–${fmt(q.hi52)}`:"", own?`Elinde ${fmt(own.qty,0)} lot (ort. ${fmt(own.avg)})`:""].filter(Boolean).join(" · ");
-  if (first || (ctab==="intra" && Date.now()-lastIntra>2000) || (mode==="game" && ctab!=="intra" && Date.now()-lastIntra>5000)){ lastIntra=Date.now(); await drawChart(); }
+  const bd=bandOf(); $("dInfo").textContent = [q.prev?(bd?`Taban ${fmt(roundTick(q.prev*(1-bd)))} · Tavan ${fmt(roundTick(q.prev*(1+bd)))}`:"Taban/tavan yok"):"", q.hi52?`${isSim()?"Dönem":"52H"} ${fmt(q.lo52)}–${fmt(q.hi52)}`:"", own?`Elinde ${fmt(own.qty,0)} lot (ort. ${fmt(own.avg)})`:""].filter(Boolean).join(" · ");
+  if (first || (ctab==="intra" && Date.now()-lastIntra>2000) || (isSim() && ctab!=="intra" && Date.now()-lastIntra>5000)){ lastIntra=Date.now(); await drawChart(); }
   if (first) updateSum();
 }
 async function drawChart(){
   const s=cur, note=$("chartNote"); if (!s) return; note.textContent="";
   if (ctab==="intra"){
-    const t = mode==="game"? (SIM.ticks[s]||[]) : (TR[s]||[]); const q=Q[s]||{};
+    const t = isSim()? (SIM.ticks[s]||[]) : (TR[s]||[]); const q=Q[s]||{};
     const ok = drawLine($("chart"), t, (q.prev&&q.price<q.prev)?"#ef4f5a":"#1fbf75", q.prev);
-    if (!ok) note.textContent = session().open? (mode==="game"?"Seans yeni açıldı, grafik oluşuyor…":"Gün içi grafik sen izledikçe dakika dakika oluşur…") : "Seans kapalı. 3 Ay / 1 Yıl'a bak.";
+    if (!ok) note.textContent = session().open? (isSim()?"Seans yeni açıldı, grafik oluşuyor…":"Gün içi grafik sen izledikçe dakika dakika oluşur…") : "Seans kapalı. 3 Ay / 1 Yıl'a bak.";
   } else {
-    if (mode!=="game") note.textContent="Yükleniyor…";
+    if (!isSim()) note.textContent="Yükleniyor…";
     try{ const bars=await loadHist(s, ctab); if (cur!==s) return; note.textContent=""; if (!bars||!drawCandles($("chart"),bars)) note.textContent="Grafik verisi yok."; }
     catch(e){ note.textContent="Grafik alınamadı."; handleErr(e); }
   }
@@ -1082,7 +1231,7 @@ function validate(){
   if (otype==="mkt" && !ses.open) return "Seans kapalı: piyasa emri verilemez. Limit emir bırakabilirsin.";
   if (otype!=="mkt"){ const px=+$("oPx").value; if (!px||px<=0) return "Fiyat gir.";
     if (Math.abs(roundTick(px)-px)>1e-6) return `Fiyat adımı ${fmt(tick(px))} ₺ olmalı (örn. ${fmt(roundTick(px))}).`;
-    if (q.prev && (px<q.prev*0.9-1e-6 || px>q.prev*1.1+1e-6)) return "Fiyat bugünkü taban–tavan aralığının dışında.";
+    if (q.prev && bandOf() && (px<q.prev*(1-bandOf())-1e-6 || px>q.prev*(1+bandOf())+1e-6)) return "Fiyat bugünkü taban–tavan aralığının dışında.";
     if (otype==="lmt" && side==="buy" && px>=q.price) return "Limit alış fiyatı şu anki fiyatın altında olmalı (üstündeyse piyasa emri ver).";
     if (otype==="lmt" && side==="sell" && px<=q.price) return "Limit satış fiyatı şu anki fiyatın üstünde olmalı.";
     if (otype==="stp" && px>=q.price) return "Stop fiyatı şu anki fiyatın altında olmalı.";
@@ -1106,7 +1255,7 @@ function submit(){
   if (otype==="mkt"){
     const r=execute(side,cur,qty,q.price,"market");
     if (!r.ok){ $("oErr").textContent=r.err; return; }
-    if (mode==="game"){ marketImpact(cur, side, qty*q.price); syncQG(); marginCheck(true); }
+    if (isSim()){ marketImpact(cur, side, qty*q.price); syncQG(); marginCheck(true); }
     toast(`${side==="buy"?"🟢 Alındı":"🔴 Satıldı"}: ${cur} ${fmt(qty,0)} lot @ ${fmt(q.price)}`);
   } else {
     const px=+$("oPx").value; let reserved=0;
@@ -1119,34 +1268,45 @@ function submit(){
 
 // ---------- modes ----------
 function setMode(m){
-  if (mode==="game"&&SIM&&m!=="game"){ save(); }
-  mode=m; S=ACC[m]; Q = m==="game"?QG:QR; savePrefs();
+  if (isSim()&&SIM&&m!==mode){ save(); }
+  if (m==="game"||m==="god") useSlot(m);
+  mode=m; S = isSim()? ACC.game : ACC.real; Q = isSim()?QG:QR; savePrefs();
   $("chooser").classList.remove("show"); closeDetail(); banner("");
   clearInterval(gameTimer); gameTimer=null;
-  if (m==="game"){ stopWatches(); syncQG(); gameLoop(); gameTimer=setInterval(gameLoop,1000); }
+  document.querySelector('nav button[data-v="god"]').style.display = m==="god"? "" : "none";
+  if (view==="god" && m!=="god") goView("market");
+  if (isSim()){ stopWatches(); if (SIM){ syncQG(); gameLoop(); } gameTimer=setInterval(gameLoop,1000); }
   else { startWatches(); }
-  renderAll();
+  renderAll(); if (view==="god") renderGod();
 }
+function slotEq(k){ const sim=slotSim(k), a= k===curSlot? ACC.game : SLOT[k].acct; if (!sim||!a) return 0; let v=a.cash-((a.f&&a.f.loan)||0); for (const o of a.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((sim.px[s]&&sim.px[s].p)||p.avg); const op=a.c&&a.c.op; if (op&&sim.px[op.sym]) v+=(op.cash+op.qty*sim.px[op.sym].p)*op.myCommit/op.initial; return v; }
 function openChooser(){
-  const has=!!SIM;
-  $("gameCont").innerHTML = has? `<div class="mbtns" style="margin-bottom:8px"><button class="btn pri" id="contGame">▶ Devam et · ${SIM.speed==="fast"?"Hızlı":"Gerçek saat"} · ${tl(gameEq())}</button></div><div class="sub" style="margin-bottom:8px">Ya da baştan, yeni bir piyasayla başla:</div>` : "";
-  $("gameStart").querySelectorAll("button").forEach(b=>b.classList.toggle("pri", !has && b.dataset.speed==="fast"));
+  for (const [k,box,start] of [["game","gameCont","gameStart"],["god","godCont","godStart"]]){
+    const sim=slotSim(k);
+    $(box).innerHTML = sim? `<div class="mbtns" style="margin-bottom:8px"><button class="btn pri" data-cont="${k}">▶ Devam et · ${sim.speed==="fast"?"Hızlı":"Gerçek saat"} · ${mtl(slotEq(k))}</button></div><div class="sub" style="margin-bottom:8px">Ya da baştan, yeni bir piyasayla başla:</div>` : "";
+    $(start).querySelectorAll("button").forEach(b=>b.classList.toggle("pri", !sim && b.dataset.speed==="fast"));
+  }
   $("chClose").style.display = mode? "" : "none";
   if (!window.claude){ $("goReal").textContent="Sadece Claude içinde çalışır"; $("goReal").classList.remove("pri"); }
   $("chooser").classList.add("show");
-  const c=$("contGame"); if (c) c.onclick=()=>setMode("game");
+  document.querySelectorAll("[data-cont]").forEach(b=>b.onclick=()=>setMode(b.dataset.cont));
 }
 function gameEq(){ let v=ACC.game.cash + myPoolShare() - ((ACC.game.f&&ACC.game.f.loan)||0); for (const o of ACC.game.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(ACC.game.pos)) v+=p.qty*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
-function startGame(speed){
+function startGame(speed, slot="game"){
+  if (isSim()&&SIM) save();
+  useSlot(slot);
   const f=ACC.game.feeRate||1; ACC.game=fresh(); ACC.game.feeRate=f;
   for (const k in QG) delete QG[k];
-  initSim(speed); setMode("game"); save();
-  toast(speed==="fast"? "⚡ Hızlı mod: bir borsa günü 8 dakika sürer." : "🕙 Gerçek saat: piyasa hafta içi 10:00–18:00 açık.");
+  initSim(speed); if (slot==="god") SIM.cfg=Object.assign({}, DEFCFG);
+  SLOT[slot]={acct:ACC.game, sim:SIM};
+  mode=null; setMode(slot); save();
+  if (slot==="god"){ toast("👑 Ultimate Trader: alttaki ⚡ Tanrı sekmesinden her şeyi değiştirebilirsin."); goView("god"); }
+  else toast(speed==="fast"? "⚡ Hızlı mod: bir borsa günü 8 dakika sürer." : "🕙 Gerçek saat: piyasa hafta içi 10:00–18:00 açık.");
 }
 
 // ---------- events ----------
 let view="market";
-function goView(v){ view=v; document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.v===v)); document.querySelectorAll("section").forEach(x=>x.classList.toggle("on",x.id==="v-"+v)); renderAll(); window.scrollTo(0,0); }
+function goView(v){ view=v; if (v==="god") setTimeout(renderGod,0); document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.v===v)); document.querySelectorAll("section").forEach(x=>x.classList.toggle("on",x.id==="v-"+v)); renderAll(); window.scrollTo(0,0); }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>goView(b.dataset.v));
 let tap=null;
 document.addEventListener("pointerdown",e=>{ const a=e.target.closest("[data-act]"), o=e.target.closest("[data-open]"), c=e.target.closest("[data-cancel]"), r=(a||o||c)?null:e.target.closest(".row[data-s]");
@@ -1169,21 +1329,23 @@ $("feeIn").onchange=()=>{ S.feeRate=Math.max(0,Math.min(10,+$("feeIn").value||0)
 $("resetBtn").onclick=()=>$("resetConf").classList.add("show");
 $("resetNo").onclick=()=>$("resetConf").classList.remove("show");
 $("resetYes").onclick=()=>{ $("resetConf").classList.remove("show");
-  if (mode==="game"){ openChooser(); toast("Hızını seçip yeni oyuna başla."); return; }
+  if (isSim()){ openChooser(); toast("Aynı modda “baştan başla”yı seç."); return; }
   const w=S.watch, f=S.feeRate; ACC.real=fresh(); ACC.real.watch=w; ACC.real.feeRate=f; S=ACC.real; save(); renderAll(); toast("Demo hesap 100.000 ₺ ile sıfırlandı."); };
 $("bannerBtn").onclick=askPermission;
 $("modeBtn").onclick=openChooser;
 $("chClose").onclick=()=>$("chooser").classList.remove("show");
 $("goReal").onclick=()=>setMode("real");
-$("gameStart").querySelectorAll("button").forEach(b=>b.onclick=()=>startGame(b.dataset.speed));
+$("gameStart").querySelectorAll("button").forEach(b=>b.onclick=()=>startGame(b.dataset.speed,"game"));
+$("godStart").querySelectorAll("button").forEach(b=>b.onclick=()=>startGame(b.dataset.speed,"god"));
 window.addEventListener("resize",()=>{ if (cur) drawChart(); if (view==="port") drawEq(); });
 setInterval(()=>{ if (mode==="real") renderHeader(); },30000);
-document.addEventListener("visibilitychange",()=>{ if (document.hidden && mode==="game" && SIM){ lastSimSave=Date.now(); save(); } });
+document.addEventListener("visibilitychange",()=>{ if (document.hidden && isSim() && SIM){ lastSimSave=Date.now(); save(); } });
 
 // ---------- boot ----------
 load();
-if (mode==="game"&&!SIM) mode=null;
-if (mode) setMode(mode); else openChooser();
+const bootMode=mode; mode=null;
+if ((bootMode==="game"||bootMode==="god") && !SLOT[bootMode].sim) { openChooser(); }
+else if (bootMode) setMode(bootMode); else openChooser();
 (async()=>{
   const c = window.claude;
   mcpTried=true;
@@ -1195,12 +1357,15 @@ if (mode) setMode(mode); else openChooser();
     if (db&&uid){
       const base="data/users/"+uid+"/";
       try{
-        const [rs, gs, ps] = await Promise.all([db.doc(base+"game").get(), db.doc(base+"sim").get(), db.doc(base+"prefs").get()]);
+        const [rs, gs, gd, ps] = await Promise.all([db.doc(base+"game").get(), db.doc(base+"sim").get(), db.doc(base+"god").get(), db.doc(base+"prefs").get()]);
         if (rs.exists){ const v=rs.data(); if (v&&v.v===1) ACC.real=Object.assign(fresh(), JSON.parse(JSON.stringify(v))); }
-        if (gs.exists){ const v=JSON.parse(JSON.stringify(gs.data())); if (v&&v.v===1&&v.sim){ const localT=SIM?SIM.G:-1e12; if (v.sim.G>=localT){ const ticks=SIM&&SIM.ticks; ACC.game=Object.assign(fresh(), v.acct); SIM=v.sim; SIM.ticks= ticks||{}; } } }
+        for (const [k,snap] of [["game",gs],["god",gd]]){ if (!snap.exists) continue; const v=JSON.parse(JSON.stringify(snap.data()));
+          if (!(v&&v.v===1&&v.sim)) continue; const loc=slotSim(k); if (loc && v.sim.G<loc.G) continue;
+          const ticks=loc&&loc.ticks; const sim=fixSim(v.sim); sim.ticks=ticks||{}; const acct=Object.assign(fresh(), v.acct);
+          if (k===curSlot){ ACC.game=acct; SIM=sim; } else SLOT[k]={acct, sim}; }
         let pm = ps.exists? (ps.data()||{}).mode : null;
-        if (!mode && pm && (pm==="real"||SIM)) { setMode(pm); }
-        else if (mode){ S=ACC[mode]; if (mode==="game") syncQG(); }
+        if (!mode && pm && (pm==="real"||slotSim(pm))) { setMode(pm); }
+        else if (mode){ S = isSim()? ACC.game : ACC.real; if (isSim()&&SIM) syncQG(); }
       }catch(e){}
     }
     if (mode==="real") startWatches();
