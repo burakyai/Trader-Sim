@@ -118,6 +118,11 @@ canvas{display:block;width:100%;height:210px}
 .ni{font-size:13px;padding:4px 0;border-top:1px solid var(--line)}
 .ni:first-of-type{border-top:0}
 .ni .tm{color:var(--mut);font-size:11px;margin-right:6px}
+.subtabs{display:flex;gap:6px;overflow-x:auto;padding:2px 16px 4px;scrollbar-width:none}
+.subtabs::-webkit-scrollbar{display:none}
+.subtabs button{flex:0 0 auto;padding:8px 12px;border-radius:99px;background:var(--panel2);font-size:13px;color:var(--mut);white-space:nowrap;font-weight:600}
+.subtabs button.on{background:var(--acc);color:#111}
+.tabs.side button{font-size:12px}
 </style>
 </head>
 <body>
@@ -139,6 +144,7 @@ canvas{display:block;width:100%;height:210px}
 
   <section id="v-market" class="on">
     <div id="news"></div>
+    <div id="mfilter"></div>
     <div id="list"></div>
     <div class="add" id="addRow"><input id="addSym" placeholder="Hisse kodu ekle (örn. KCHOL)" maxlength="8"><button class="btn" id="addBtn">Ekle</button></div>
   </section>
@@ -170,6 +176,7 @@ canvas{display:block;width:100%;height:210px}
     <div id="storeBox"></div>
     <div class="card">
       <h3>Seçenekler</h3>
+      <div id="sndBox" style="margin-bottom:12px"></div>
       <div class="field" style="padding:0"><label>Komisyon oranı (binde)</label><input id="feeIn" type="number" step="0.1" min="0" max="10"></div>
       <div style="margin-top:12px"><button class="btn danger" id="resetBtn">Hesabı sıfırla (100.000 ₺)</button>
         <div class="confirm" id="resetConf"><button class="btn sell" id="resetYes">Evet, sıfırla</button><button class="btn" id="resetNo">Vazgeç</button></div></div>
@@ -182,7 +189,7 @@ canvas{display:block;width:100%;height:210px}
 <nav><div class="in">
   <button data-v="market" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Piyasa</button>
   <button data-v="port"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4h8v2"/></svg>Portföy</button>
-  <button data-v="career"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg>Kariyer</button>
+  <button data-v="career"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg>Hayat</button>
   <button data-v="god" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Tanrı</button>
   <button data-v="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Emirler</button>
   <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Seçenekler</button>
@@ -198,7 +205,7 @@ canvas{display:block;width:100%;height:210px}
   <div class="tabs" id="chartTabs"><button data-c="intra" class="on">Gün içi</button><button data-c="3mo">3 Ay</button><button data-c="1y">1 Yıl</button></div>
   <div class="chartwrap"><canvas id="chart"></canvas><div class="chartnote" id="chartNote"></div></div>
   <div class="sub" style="padding:4px 16px" id="dInfo"></div>
-  <div class="tabs side" style="margin-top:10px"><button class="b on" data-s="buy">AL</button><button class="s" data-s="sell">SAT</button></div>
+  <div class="tabs side" style="margin-top:10px"><button class="b on" data-s="buy">AL</button><button class="s" data-s="sell">SAT</button><button class="s" data-s="short">AÇIĞA SAT</button></div>
   <div class="tabs" id="typeTabs" style="margin-top:8px"><button data-t="mkt" class="on">Piyasa</button><button data-t="lmt">Limit</button><button data-t="stp">Stop</button></div>
   <div class="field" id="priceField" style="display:none"><label id="priceLbl">Limit fiyat</label><input id="oPx" type="number" inputmode="decimal" step="0.01"></div>
   <div class="field"><label>Adet <span id="maxQty" class="mut"></span></label><input id="oQty" type="number" inputmode="numeric" min="1" step="1">
@@ -213,6 +220,16 @@ canvas{display:block;width:100%;height:210px}
   <div class="ch-in" style="margin-top:22vh"><div class="mcard" style="text-align:center">
     <div style="font-size:46px">💸</div><div class="mt">Battın!</div><div class="md" id="brokeTxt"></div>
     <div class="mbtns"><button class="btn pri" data-act="gojob">💼 Kariyer'e git</button><button class="btn" id="brokeClose">Kapat</button></div>
+  </div></div>
+</div>
+
+<div class="chooser" id="evModal" style="background:#000c">
+  <div class="ch-in" style="margin-top:18vh"><div class="mcard">
+    <div style="font-size:40px;text-align:center">🎴</div><div class="mt" style="text-align:center">Bir gelişme var</div>
+    <div class="md" id="evTxt" style="font-size:15px;color:var(--text)"></div>
+    <div class="mbtns" id="evBtns"><button class="btn pri" id="evA">A</button><button class="btn" id="evB">B</button></div>
+    <div class="sub" id="evRes" style="margin-top:8px;font-size:14px"></div>
+    <button class="btn pri" id="evOk" style="width:100%;margin-top:10px;display:none">Tamam</button>
   </div></div>
 </div>
 
@@ -257,13 +274,28 @@ const GS = [
   {s:"KPDOT", n:"Kapadokya Otomotiv",    p:1045, v:.019, b:1.0, sec:"otomotiv", L:900000000},
   {s:"ZGRMD", n:"Zigana Madencilik",     p:64.2, v:.031, b:0.9, sec:"madencilik", L:250000000},
 ];
+const ASSETS = [
+  {s:"ALTIN", n:"Gram Altın",  p:4150,    v:.011, b:-0.3, sec:"emtia",  L:5e9,  k:"emtia", tr:0.0003},
+  {s:"GUMUS", n:"Gram Gümüş",  p:52.4,    v:.018, b:-0.2, sec:"emtia",  L:8e8,  k:"emtia"},
+  {s:"USD",   n:"Dolar/TL",    p:42.10,   v:.004, b:-0.5, sec:"doviz",  L:2e10, k:"doviz", tr:0.0004},
+  {s:"EUR",   n:"Euro/TL",     p:48.90,   v:.005, b:-0.4, sec:"doviz",  L:1.5e10, k:"doviz", tr:0.0004},
+  {s:"BTC",   n:"Bitcoin",     p:3950000, v:.035, b:1.4,  sec:"kripto", L:3e9,  k:"kripto"},
+  {s:"ETH",   n:"Ethereum",    p:152000,  v:.045, b:1.6,  sec:"kripto", L:1e9,  k:"kripto"},
+  {s:"ANKC",  n:"AnkaCoin (meme)", p:0.85, v:.12, b:2.0,  sec:"kripto", L:5e7,  k:"kripto"},
+];
+const KIND = {emtia:"Emtia", doviz:"Döviz", kripto:"Kripto"};
+function isStock(g){ return !g.k; }
+function unitOf(sym){ const g=isSim()&&CM()[sym]; return !g||!g.k? "lot" : g.k==="emtia"? "gr" : g.k==="doviz"? "adet" : "adet"; }
+function qStep(sym){ const g=isSim()&&CM()[sym]; return g&&g.k==="kripto"? 1e-4 : 1; }
+function fq(x,sym){ const st=qStep(sym); return Math.floor((x+1e-9)/st)*st; }
+function fqty(n,sym){ return qStep(sym)<1? fmt(n,4) : fmt(n,0); }
 const DEFCFG = {band:0.10, maxLev:10, marginRate:0.0012, loanRate:0.002, spk:true, margin:true, tahtaMin:50000000, news:2, bias:0};
 function cfg(){ return (SIM&&SIM.cfg)||DEFCFG; }
 function CO(){ return (SIM&&SIM.co)||GS; }
 function CM(){ return Object.fromEntries(CO().map(g=>[g.s,g])); }
-function bandHi(prev,v){ const b=cfg().band; return b? Math.min(prev*(1+b), v) : v; }
-function bandLo(prev,v){ const b=cfg().band; return b? Math.max(prev*(1-Math.min(b,0.95)), v) : Math.max(0.01, v); }
-function bandOf(){ return isSim()? cfg().band : 0.1; }
+function bandHi(prev,v,g){ const b=cfg().band; return b&&!(g&&g.k)? Math.min(prev*(1+b), v) : v; }
+function bandLo(prev,v,g){ const b=cfg().band; return b&&!(g&&g.k)? Math.max(prev*(1-Math.min(b,0.95)), v) : Math.max(0.0001, v); }
+function bandOf(sym){ if (!isSim()) return 0.1; const g=sym&&CM()[sym]; return g&&g.k? 0 : cfg().band; }
 const NEWS_POS = ["{n} rekor bilanço açıkladı","{n} %100 bedelsiz sermaye artırımı kararı aldı","{n} büyük bir ihale kazandı","Analistler {n} için hedef fiyatı yükseltti","{n} yurt dışından dev sipariş aldı","{n} yüklü temettü dağıtacağını açıkladı","{n} geri alım programı başlattı"];
 const NEWS_NEG = ["{n} beklentilerin altında bilanço açıkladı","{n} hakkında SPK incelemesi başlatıldı","{n} tesisinde arıza: üretim durdu","{n} büyük ortağı blok pay sattı","Analistler {n} için 'sat' tavsiyesi verdi","{n} kritik ihaleyi kaybetti","{n} bedelli sermaye artırımı açıkladı"];
 const NEWS_MKT = [
@@ -304,8 +336,8 @@ function istNow(){
   return {date:`${g("year")}-${g("month")}-${g("day")}`, h:+g("hour")%24, m:+g("minute"), s:+g("second"), wd:g("weekday")};
 }
 function fmtDur(m){ const h=Math.floor(m/60), mm=Math.round(m%60); return (h?h+" sa ":"")+mm+" dk"; }
-function tick(p){ return p<20?.01:p<50?.02:p<100?.05:p<250?.1:p<500?.25:p<1000?.5:p<2500?1:2.5; }
-function roundTick(p){ const t=tick(p); return Math.round(Math.round(p/t)*t*100)/100; }
+function tick(p){ return p<1?.0001:p<20?.01:p<50?.02:p<100?.05:p<250?.1:p<500?.25:p<1000?.5:p<2500?1:2.5; }
+function roundTick(p){ const t=tick(p); const d=t<.01?10000:100; return Math.round(Math.round(p/t)*t*d)/d; }
 function toast(msg){ const t=$("toast"); t.innerHTML=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),3600); }
 function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -354,6 +386,8 @@ function load(){
   mode = lsGet("arena_mode"); PREMIUM = lsGet("arena_premium")===true;
 }
 function fixSim(x){ if(!x) return x; if(!x.ticks) x.ticks={}; if(!x.co) x.co=JSON.parse(JSON.stringify(GS)); return x; }
+function ensureAssets(){ if (!SIM) return; const have=new Set(SIM.co.map(g=>g.s)); const sd=Math.floor((SIM.G+1)/DAY);
+  for (const a of ASSETS) if (!have.has(a.s)){ const g=JSON.parse(JSON.stringify(a)); SIM.co.push(g); genHist(g, sd, true); } }
 function saveTicks(){ lsSet("arena_ticks",{date:istNow().date, d:TR}); }
 
 // ---------- clock (mode aware) ----------
@@ -396,10 +430,10 @@ function dayKey(){ return isSim()&&SIM? "G"+Math.floor((SIM.G+1)/DAY) : istNow()
 function rnd(){ let t=(SIM.r=(SIM.r+0x6D2B79F5)|0); t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }
 function gauss(){ let u=0; while(!u) u=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*rnd()); }
 function initSim(speed){
-  SIM = {v:1, speed, start:Date.now(), r:(Date.now()%2147483647)|0, G:0, mkt:0, px:{}, bars:{}, news:[], sched:[], ticks:{}, co:JSON.parse(JSON.stringify(GS))};
+  SIM = {v:1, speed, start:Date.now(), r:(Date.now()%2147483647)|0, G:0, mkt:0, px:{}, bars:{}, news:[], sched:[], ticks:{}, co:JSON.parse(JSON.stringify(GS.concat(ASSETS)))};
   const c = gameClock();
   const startDay = c.open? Math.floor(c.T/DAY) : Math.floor((c.T+1)/DAY);
-  for (const g of SIM.co) genHist(g, startDay);
+  for (const g of SIM.co) genHist(g, startDay, !!g.k);
   SIM.G = startDay*DAY-1;
   SIM.lastTick = SIM.G;
 }
@@ -421,8 +455,9 @@ function scheduleDay(day){
   for (let i=0;i<k;i++){
     const sec=Math.floor(600+rnd()*(DAY-1200));
     if (rnd()<0.28){ const m=NEWS_MKT[Math.floor(rnd()*NEWS_MKT.length)]; SIM.sched.push({sec, mkt:NEWS_MKT.indexOf(m)}); }
-    else { const g=CO()[Math.floor(rnd()*CO().length)], pos=rnd()<0.52; const mag=(0.025+rnd()*0.055)*(pos?1:-1);
-      const arr=pos?NEWS_POS:NEWS_NEG; SIM.sched.push({sec, sym:g.s, chg:mag, t:arr[Math.floor(rnd()*arr.length)].replace("{n}",g.n)}); }
+    else { const pool=rnd()<0.18? CO().filter(x=>x.k==="kripto") : CO().filter(isStock); if (!pool.length) continue;
+      const g=pool[Math.floor(rnd()*pool.length)], pos=rnd()<0.52; const mag=(g.k?(0.04+rnd()*0.08):(0.025+rnd()*0.055))*(pos?1:-1);
+      const arr=g.k? (pos?["{n} için dev kurumsal alım haberi geldi","{n} ETF başvurusu onaylandı","{n} ağı büyük güncellemeyi tamamladı"]:["Bir kripto borsasında hack iddiası: {n} sert düştü","Düzenleyiciler {n} işlemlerine kısıtlama getiriyor","{n} balinası büyük satış yaptı"]) : (pos?NEWS_POS:NEWS_NEG); SIM.sched.push({sec, sym:g.s, chg:mag, t:arr[Math.floor(rnd()*arr.length)].replace("{n}",g.n)}); }
   }
   SIM.sched.sort((a,b)=>a.sec-b.sec);
 }
@@ -433,11 +468,11 @@ function rollDay(){
     const q=SIM.px[g.s]; const b=SIM.bars[g.s];
     b.push([day,q.o,q.h,q.l,q.p]); if (b.length>250) b.shift();
     q.prev=q.p; q.x=q.p*Math.exp(gauss()*g.v*0.35+SIM.mkt*g.b*0.4);
-    q.x=bandHi(q.prev,bandLo(q.prev,q.x)); q.p=q.o=q.h=q.l=roundTick(q.x); q.vol=0;
+    q.x=bandHi(q.prev,bandLo(q.prev,q.x,g),g); q.p=q.o=q.h=q.l=roundTick(q.x); q.vol=0;
     q.mu=gauss()*g.v*0.3 + (g.tr||0);
     SIM.ticks[g.s]=[[0,q.p]];
   }
-  careerClose(day, simLive); finClose(simLive);
+  careerClose(day, simLive); finClose(simLive); lifeClose(day, simLive);
   for (const g of CO()){ const q=SIM.px[g.s]; SIM.ticks[g.s]=[[0,q.p]]; }
   scheduleDay(day+1);
 }
@@ -446,14 +481,14 @@ function applyNews(ev, live){
   let item;
   if (ev.mkt!=null){ const m=NEWS_MKT[ev.mkt];
     for (const g of CO()){ const k=m.sec[g.sec]; const f = k!=null ? (m.base!==0? m.base*k : 0.012*k) : m.base*g.b;
-      const q=SIM.px[g.s]; q.x=bandHi(q.prev,bandLo(q.prev,q.x*(1+f))); q.mu+=f*0.4; }
+      const q=SIM.px[g.s]; q.x=bandHi(q.prev,bandLo(q.prev,q.x*(1+f),g),g); q.mu+=f*0.4; }
     item={day, G:SIM.G, t:"🌍 "+m.t, up:m.base>0||(m.base===0&&false)};
   } else {
-    const q=SIM.px[ev.sym]; q.x=bandHi(q.prev,bandLo(q.prev,q.x*(1+ev.chg))); q.mu+=ev.chg*0.5;
+    const q=SIM.px[ev.sym]; if (!q) return; const g=CM()[ev.sym]; q.x=bandHi(q.prev,bandLo(q.prev,q.x*(1+ev.chg),g),g); q.mu+=ev.chg*0.5;
     item={day, G:SIM.G, t:ev.t, sym:ev.sym, up:ev.chg>0};
   }
   SIM.news.unshift(item); if (SIM.news.length>40) SIM.news.length=40;
-  if (live) toast("📰 "+esc(item.t));
+  if (live) { toast("📰 "+esc(item.t)); sfx("news"); }
 }
 function stepPrices(dt){
   const f=dt/DAY, sq=Math.sqrt(f), mz=gauss();
@@ -461,7 +496,7 @@ function stepPrices(dt){
   for (const g of CO()){
     const q=SIM.px[g.s];
     const ret=(SIM.mkt*g.b+q.mu)*f + (g.v*0.8*gauss()+0.012*g.b*mz)*sq;
-    q.x=bandHi(q.prev,bandLo(q.prev,q.x*Math.exp(ret)));
+    q.x=bandHi(q.prev,bandLo(q.prev,q.x*Math.exp(ret),g),g);
     q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p;
     q.vol+= 2e7/Math.sqrt(g.p)*f*(0.5+rnd());
     if (Math.floor(sec/60)!==Math.floor(oldSec/60)||dt>=60){ const t=SIM.ticks[g.s]||(SIM.ticks[g.s]=[]); t.push([sec,q.p]); if (t.length>600) t.shift(); }
@@ -499,7 +534,9 @@ function gameLoop(){
   if (fills.length && (c.T-before)>180){
     toast(`Sen yokken ${fills.length} emrin gerçekleşti — Seçenekler'deki geçmişe bak.`);
   }
+  lifeEnsure(); taskTick(); gongCheck();
   syncQG(); snapshotEq(); checkBroke(); renderAll(); if (cur) renderDetail(false);
+  if (c.T-before<=180) maybeEvent();
   if (Date.now()-lastSimSave>60000 && SIM.G!==before){ lastSimSave=Date.now(); save(); }
   else if (Date.now()-(gameLoop._ls||0)>8000){ gameLoop._ls=Date.now(); lsSet(LSK(curSlot),{v:1, acct:ACC.game, sim:SIM}); }
 }
@@ -540,7 +577,7 @@ function botMult(){ return hasRole("bot")?0.65:1; }
 
 // --- liquidity / market impact (all game-mode market orders) ---
 function impactPct(sym, amt){ const g=CM()[sym]; return Math.min(0.10, 0.30*amt/g.L); }
-function pushPrice(sym, pct){ const q=SIM.px[sym]; q.x=bandHi(q.prev,bandLo(q.prev, q.x*(1+pct))); q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p; }
+function pushPrice(sym, pct){ const q=SIM.px[sym], g=CM()[sym]; q.x=bandHi(q.prev,bandLo(q.prev, q.x*(1+pct),g),g); q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p; }
 function marketImpact(sym, side, amt){ const k=impactPct(sym,amt); if (k<0.0005) return; pushPrice(sym, side==="buy"? k : -k*(1-fomo(sym))); }
 function fomo(sym){ const op=career().op; return op&&op.sym===sym? Math.min(0.6, op.pushes*0.12*(hasRole("fenomen")?1.3:1)) : 0; }
 
@@ -566,7 +603,7 @@ function riskP(h){ if (!cfg().spk) return 0; return h<35? 0 : (h-35)/65*0.45; }
 
 function careerClose(day, live){
   const c=career(), a=ACC.game;
-  if (c.job){ const j=JOBS.find(x=>x.id===c.job); if (j){ a.cash+=j.w; c.exp++; clog(`💼 Maaş yattı: +${tl(j.w)} (${j.n})`); if (live) toast(`💼 Maaş yattı: +${tl(j.w)}`); } }
+  if (c.job){ const j=JOBS.find(x=>x.id===c.job); if (j){ const w=Math.round(j.w*(1+(c.wb||0))); a.cash+=w; c.exp++; clog(`💼 Maaş yattı: +${tl(w)} (${j.n})`); if (live) { toast(`💼 Maaş yattı: +${tl(w)}`); sfx("cash"); } } }
   if (!c.unlocked && gameEq()>=cfg().tahtaMin){ c.unlocked=true; genCands(); clog("🎯 Tahtacılık kilidi açıldı!"); if (live) toast("🎯 Tahtacılık eşiğini geçtin! Artık tahtacı olabilirsin — Kariyer'e bak."); }
   if (c.unlocked && (day%2===0 || !c.cands.length)) genCands();
   const op=c.op;
@@ -596,6 +633,12 @@ function opAction(act, arg){
   if (act==="lev"||act==="loan"||act==="repay"){ finAction(act,arg); return; }
   if (act.startsWith("g_")){ godAction(act,arg); return; }
   if (act.startsWith("u_")){ storeAction(act); return; }
+  if (act==="mf"){ mfilter=arg; renderAll(); return; }
+  if (act.startsWith("h_")){ lifeSub=act.slice(2); renderAll(); return; }
+  if (act==="t_claim"){ claimTask(arg); save(); renderAll(); return; }
+  if (act==="l_buy"){ buyLux(arg); save(); renderAll(); return; }
+  if (act==="l_sell"){ const g=sellLux(arg); if (g){ toast(`💸 +${mtl(g)}`); sfx("cash"); } save(); renderAll(); return; }
+  if (act.startsWith("c_")){ compAction(act); return; }
   const day=simDay(), open=gameClock().open, op=c.op;
   const needOpen=()=>{ if (!open){ toast("Seans kapalı; tahta seans içinde oynanır."); return false; } return true; };
   const frozen=()=> op && op.frozenUntil && day<op.frozenUntil;
@@ -669,14 +712,14 @@ function opAction(act, arg){
     clog(`🏁 Operasyon kapandı. Havuz ${P>=0?"kârı":"zararı"}: ${mtl(Math.abs(P))}. Senin payın: ${myPnl>=0?"+":"−"}${mtl(Math.abs(myPnl))}. ${lines.join(" · ")}`);
     toast(`🏁 Operasyon kapandı: sana ${myPnl>=0?"+":"−"}${mtl(Math.abs(myPnl))}`);
   }
-  if (act==="gojob"){ $("broke").classList.remove("show"); goView("career"); return; }
+  if (act==="gojob"){ $("broke").classList.remove("show"); lifeSub="is"; goView("career"); return; }
   save(); syncQG(); renderAll();
 }
 function frozenMsg(sym){ if (!isSim()||!SIM) return null; const c=career(); const f=c.frozen[sym]; if (f!=null && simDay()<f) return `SPK tedbiri: ${sym} ${f-simDay()} gün daha satılamaz.`; return null; }
 function heatColor(h){ return h<35?"var(--up)":h<65?"var(--acc)":"var(--down)"; }
 function renderCareer(){
   const el=$("careerBox"); if (!el) return;
-  if (!isSim()||!SIM){ el.innerHTML=`<div class="empty">Kariyer, iş ve tahtacılık sadece 🎮 Oyun Modu'nda var. Üstteki mod düğmesinden geçebilirsin.</div>`; el._h=""; return; }
+  if (!isSim()||!SIM){ el.innerHTML=`<div class="empty">Hayat sekmesi (görevler, lüks, iş, tahtacılık, lig, şirket) sadece 🎮 Oyun Modu'nda var. Üstteki mod düğmesinden geçebilirsin.</div>`; el._h=""; return; }
   const c=career(), eq=gameEq(), day=simDay(), open=gameClock().open;
   // jobs
   const j=JOBS.find(x=>x.id===c.job);
@@ -711,7 +754,7 @@ function renderCareer(){
       const mine=Math.floor(S.cash*c.commit/100), capSum=c.team.reduce((a,m)=>a+(m.cap||0),0);
       th+=`<div class="sub" style="margin-bottom:6px">Havuza nakdinin ne kadarını koyacaksın?</div><div class="chips">${[25,50,75,100].map(p=>`<button data-act="commit" data-arg="${p}" style="${c.commit===p?"background:var(--acc);color:#111":""}">%${p}</button>`).join("")}</div>
         <div class="sub" style="margin:8px 0">Havuz: senin ${mtl(mine)} + ortaklar ${mtl(capSum)} = <b>${mtl(mine+capSum)}</b>${c.heatIdle?` · eski operasyonun radarı hâlâ ${c.heatIdle}`:""}</div>`;
-      th+=CO().slice().sort((a,b)=>a.L-b.L).map(g=>{ const q=SIM.px[g.s]; const k=Math.min(10,(mine+capSum)/g.L*30);
+      th+=CO().filter(isStock).sort((a,b)=>a.L-b.L).map(g=>{ const q=SIM.px[g.s]; const k=Math.min(10,(mine+capSum)/g.L*30);
         return `<div class="row" style="padding:8px 0"><div><div class="sym" style="font-size:14px">${g.s} <span class="pill">derinlik ${mtl(g.L)}</span></div><div class="sub">${g.n} · ${fmt(q.p)} ₺ · havuzun tamamı fiyatı ~%${fmt(k,1)} iter</div></div><button class="btn pri" data-act="start" data-arg="${g.s}">Tahta kur</button></div>`; }).join("");
     }
     // team
@@ -723,13 +766,19 @@ function renderCareer(){
       : `<div class="sub">Şu an aday yok.</div>`;
   }
   th+=`<div class="sub" style="margin-top:10px;opacity:.75">Not: Gerçek hayatta tahtacılık suçtur (piyasa dolandırıcılığı). Burada kurgusal bir oyun mekaniği.</div></div>`;
-  let h = c.unlocked? th+jh : jh+th;
-  if (c.log.length) h+=`<div class="card"><h3>Olaylar</h3>${c.log.slice(0,12).map(l=>`<div class="ni"><span class="tm">${l.d}</span>${esc(l.t)}</div>`).join("")}</div>`;
+  const logH = `<div class="card"><h3>📜 Olaylar</h3>${c.log.length? c.log.slice(0,30).map(l=>`<div class="ni"><span class="tm">${l.d}</span>${esc(l.t)}</div>`).join("") : `<div class="sub">Henüz olay yok.</div>`}</div>`;
+  const tabs=[["gorev","🎯 Görevler"],["lux","🛍️ Lüks"],["is","💼 İş"],["tahta","📈 Tahta"],["rakip","🏆 Lig"],["sirket","🏗️ Şirket"],["olay","📜 Olaylar"]];
+  const L=life(); const done=(L.tasks.list||[]).filter(k=>k.done&&!k.claimed).length;
+  const top=`<div class="card" style="padding:10px 14px"><div class="grid2"><div class="kv"><div class="k">⭐ Statü</div><div class="v">${status()}</div></div><div class="kv"><div class="k">🔥 Görev serisi</div><div class="v">${L.streak} gün</div></div></div></div>
+    <div class="subtabs">${tabs.map(([k,l])=>`<button data-act="h_${k}" class="${lifeSub===k?"on":""}">${l}${k==="gorev"&&done?` <b style="color:var(--up)">●</b>`:""}</button>`).join("")}</div>`;
+  const body = lifeSub==="is"? jh : lifeSub==="tahta"? th : lifeSub==="olay"? logH : lifeBody(lifeSub);
+  const h=top+body;
+  const ae=document.activeElement; if (ae && el.contains(ae) && (ae.tagName==="INPUT"||ae.tagName==="SELECT")) return;
   if (el._h!==h){ el.innerHTML=h; el._h=h; }
 }
 function checkBroke(){
   if (!isSim()||!SIM) return; const c=career(); const a=ACC.game;
-  const broke = gameEq()<2000 && !Object.keys(a.pos).length && !a.orders.length && !c.op;
+  const broke = gameEq()<2000 && !Object.keys(a.pos).length && !a.orders.length && !c.op && !life().items.length && !life().comp;
   if (broke && !c.broke){ c.broke=true; $("brokeTxt").textContent = c.job? "Paran bitti ama işin var. Maaşın her gün yatacak; biraz biriktirip borsaya geri dön." : "Paran bitti. Bir işe gir, maaşınla biriktir ve borsaya geri dön."; $("broke").classList.add("show"); clog("💸 Battın."); }
   if (!broke) c.broke=false;
 }
@@ -737,10 +786,12 @@ function checkBroke(){
 // ---------- finance: leverage (margin) + bank loan (game mode) ----------
 const ALL_LEVS=[1,2,5,10,25,50,100]; function LEVS_(){ return ALL_LEVS.filter(x=>x<=cfg().maxLev); }
 function fin(){ const a=ACC.game; if (!a.f) a.f={lev:1, loan:0, lastInt:0, mcalls:0}; return a.f; }
-function posValOf(a){ let v=0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
+function posValOf(a){ let v=0; for (const [s,p] of Object.entries(a.pos)) v+=Math.abs(p.qty)*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
+function hasShort(a){ return Object.values(a.pos).some(p=>p.qty<0); }
 function buyingPower(){
   if (!isSim()) return S.cash;
-  const f=fin(), eq=equity(); return S.cash + (f.lev-1)*Math.max(0,eq);
+  const f=fin(), eq=equity(); const res=S.orders.reduce((x,o)=>x+(o.reserved||0),0);
+  return f.lev*Math.max(0,eq) - posValOf(S) - res - luxLocked();
 }
 function loanLimit(){
   const c=career(), f=fin(); const j=JOBS.find(x=>x.id===c.job);
@@ -750,19 +801,22 @@ function loanLimit(){
 function marginState(){
   const a=ACC.game, f=fin(), pv=posValOf(a), eq=gameEq();
   const mm=0.5/Math.max(1,f.lev); const debt=Math.max(0,-a.cash);
-  return {pv, eq, debt, mm, ratio: pv? eq/pv : 1, call: cfg().margin && debt>0 && pv>0 && eq < mm*pv};
+  return {pv, eq, debt, mm, ratio: pv? eq/pv : 1, call: cfg().margin && (debt>0||hasShort(a)) && pv>0 && eq < mm*pv};
 }
 function liquidateAll(reason, live){
   const a=ACC.game; let n=0;
   for (const o of [...a.orders]){ a.cash+=o.reserved||0; } a.orders=[];
   for (const [s,p] of Object.entries({...a.pos})){ const q=SIM.px[s]; if (!q) continue;
     if (frozenMsg(s)) continue;
-    const qty=p.qty; marketImpact(s,"sell",qty*q.p); execute("sell",s,qty,SIM.px[s].p,reason==="icra"?"icra":"margin"); n++; }
+    const qty=p.qty, via=reason==="icra"?"icra":"margin";
+    if (qty<0){ marketImpact(s,"buy",-qty*q.p); execute("buy",s,-qty,SIM.px[s].p,via); }
+    else { marketImpact(s,"sell",qty*q.p); execute("sell",s,qty,SIM.px[s].p,via); } n++; }
   return n;
 }
 function bankruptCheck(live){
   const a=ACC.game, f=fin();
   if (Object.keys(a.pos).length || a.orders.length || (a.c&&a.c.op) || gameEq()>=0) return;
+  if (life().items.length){ const n=seizeLux(); clog(`⚖️ Haciz: borç için ${n} eşyan satıldı.`); if (live) toast("⚖️ Haciz! Eşyaların borç için satıldı."); if (gameEq()>=0) return; }
   const debt=-gameEq(); a.cash=0; f.loan=0; f.lev=1;
   clog(`🏚️ İflas: ${mtl(debt)} borç ödenemedi. Banka alacağını sildi, kaldıraç kapatıldı. Sıfırdan başlıyorsun.`);
   if (live) toast("🏚️ İflas ettin. Borçların silindi, sıfırdan başlıyorsun.");
@@ -773,7 +827,7 @@ function marginCheck(live){
   const ms=marginState(); if (!ms.call) return;
   const n=liquidateAll("margin", live); const f=fin(); f.mcalls++;
   clog(`📉 MARGIN CALL! Teminat yetmedi, ${n} pozisyon zorla satıldı. Kalan varlık: ${mtl(gameEq())}.`);
-  if (live) toast("📉 MARGIN CALL! Pozisyonların zorla satıldı.");
+  if (live) { toast("📉 MARGIN CALL! Pozisyonların zorla satıldı."); sfx("alarm"); }
   bankruptCheck(live);
   save();
 }
@@ -781,9 +835,11 @@ function finClose(live){
   const a=ACC.game, f=fin(); let int=0;
   if (a.cash<0){ const i=-a.cash*cfg().marginRate; a.cash-=i; int+=i; }
   if (f.loan>0){ const i=f.loan*cfg().loanRate; a.cash-=i; int+=i; }
+  for (const [s,p] of Object.entries(a.pos)) if (p.qty<0 && SIM.px[s]){ const i=-p.qty*SIM.px[s].p*0.0005; a.cash-=i; int+=i; }
   f.lastInt=Math.round(int*100)/100;
   // cash below what leverage allows (e.g. fines/interest with 1x) -> icra
   const allowed=-(f.lev-1)*Math.max(0,gameEq());
+  if (a.cash < allowed-1 && !Object.keys(a.pos).length && life().items.length){ const n=seizeLux(); clog(`⚖️ Haciz: borç için ${n} eşyan satıldı.`); if (live) toast("⚖️ Haciz! Eşyaların satıldı."); }
   if (a.cash < allowed-1 && Object.keys(a.pos).length){ const n=liquidateAll("icra", live); clog(`⚖️ İcra: borç ödenemedi, ${n} pozisyon satılarak borç kapatıldı.`); if (live) toast("⚖️ İcra! Borç için hisselerin satıldı."); }
 }
 function finAction(act, arg){
@@ -962,8 +1018,325 @@ function storeAction(act){
   syncGodTab(); renderStore(); renderHeader();
 }
 
+// ---------- HAYAT: lüks, görevler, rakipler, şirket, olaylar, ses ----------
+function life(){
+  const a=ACC.game; if (!a.l) a.l={};
+  const L=a.l;
+  if (!L.items) L.items=[]; if (L.status==null) L.status=0; if (!L.tasks) L.tasks={day:-1e9,list:[]}; if (L.streak==null) L.streak=0;
+  if (!L.ever) L.ever={}; if (!L.rivals) L.rivals=[]; if (!L.season) L.season=null; if (L.comp===undefined) L.comp=null;
+  if (!L.evq) L.evq=[]; if (!L.pend) L.pend=[]; if (!L.bets) L.bets=[]; if (!L.seasons) L.seasons=0; if (!L.wins) L.wins=0;
+  return L;
+}
+let lifeSub="gorev";
+
+// ===== Lüks =====
+const LUX = [
+  {id:"ev1", c:"🏠 Ev", n:"Kadıköy'de 1+1 daire",   p:4.5e6,  up:+0.00015, ap:0.0003, rs:0.95, st:5},
+  {id:"ev2", c:"🏠 Ev", n:"Nişantaşı'nda dubleks",   p:28e6,   up:+0.00012, ap:0.0003, rs:0.95, st:20},
+  {id:"ev4", c:"🏠 Ev", n:"Bodrum'da villa",         p:120e6,  up:+0.0001,  ap:0.0003, rs:0.95, st:50},
+  {id:"ev3", c:"🏠 Ev", n:"Bebek'te yalı",           p:650e6,  up:+0.00008, ap:0.0004, rs:0.95, st:120},
+  {id:"car1",c:"🚗 Araba", n:"Fiat Egea",           p:1.3e6,  up:-0.0005,  ap:-0.0003, rs:0.75, st:1},
+  {id:"car2",c:"🚗 Araba", n:"BMW M4",              p:9.5e6,  up:-0.0006,  ap:-0.0003, rs:0.75, st:10},
+  {id:"car3",c:"🚗 Araba", n:"Ferrari SF90",        p:38e6,   up:-0.0007,  ap:-0.0002, rs:0.80, st:35},
+  {id:"car4",c:"🚗 Araba", n:"Bugatti Chiron",      p:190e6,  up:-0.0006,  ap:0,       rs:0.85, st:90},
+  {id:"w1",  c:"⌚ Saat", n:"Rolex Submariner",     p:1.6e6,  up:0,        ap:0.0002, rs:0.90, st:4},
+  {id:"w2",  c:"⌚ Saat", n:"Patek Philippe Nautilus", p:9e6, up:0,        ap:0.0003, rs:0.90, st:12},
+  {id:"y1",  c:"🛥️ Yat", n:"Gulet",                p:45e6,   up:-0.001,   ap:-0.0002, rs:0.80, st:40},
+  {id:"y2",  c:"🛥️ Yat", n:"Mega yat",             p:1.2e9,  up:-0.001,   ap:-0.0002, rs:0.80, st:250},
+  {id:"j1",  c:"✈️ Jet", n:"Özel jet",             p:2.8e9,  up:-0.0008,  ap:-0.0002, rs:0.80, st:400},
+];
+const LUXM = Object.fromEntries(LUX.map(x=>[x.id,x]));
+function luxValOf(a){ const L=a&&a.l; if (!L||!L.items) return 0; return L.items.reduce((s,it)=>s+it.val*(LUXM[it.id]?LUXM[it.id].rs:0.8),0); }
+function luxVal(){ return luxValOf(ACC.game); }
+function luxLocked(){ return isSim()? fin().lev*(luxVal()+compVal()) : 0; }
+function status(){ const L=life(); return L.status + L.items.reduce((s,it)=>s+(LUXM[it.id]?LUXM[it.id].st:0),0); }
+function buyLux(id, discount=0){
+  const x=LUXM[id], L=life(); const price=Math.round(x.p*(1-discount));
+  if (ACC.game.cash<price){ toast(`Nakit yetmiyor: ${mtl(price)} lazım.`); return false; }
+  ACC.game.cash-=price; L.items.push({id, val:x.p, day:simDay(), uid:Math.floor(Math.random()*1e9).toString(36)});
+  clog(`🛍️ ${x.n} aldın (−${mtl(price)}).`); toast(`🛍️ Hayırlı olsun: ${x.n}!`); sfx("cash"); taskEvent("lux"); return true;
+}
+function sellLux(uid, forced){
+  const L=life(); const it=L.items.find(i=>i.uid===uid); if (!it) return 0; const x=LUXM[it.id];
+  const got=Math.round(it.val*x.rs*(forced?0.85:1)); ACC.game.cash+=got; L.items=L.items.filter(i=>i!==it);
+  clog(`${forced?"⚖️ Haciz":"💸 Satış"}: ${x.n} ${mtl(got)}'ye ${forced?"elinden alındı":"satıldı"}.`); return got;
+}
+function luxClose(live){
+  const L=life(), a=ACC.game; let net=0;
+  for (const it of L.items){ const x=LUXM[it.id]; if (!x) continue; it.val*=1+x.ap; const d=it.val*x.up; a.cash+=d; net+=d; }
+  if (L.items.length) L.lastLux=Math.round(net);
+}
+function seizeLux(){ const L=life(); let n=0; for (const it of [...L.items]){ sellLux(it.uid, true); n++; if (gameEq()>=0 && ACC.game.cash>=0) break; } return n; }
+
+// ===== Günlük görevler =====
+const TASKS = [
+  {id:"trades", t:n=>`Bugün ${n} işlem yap`, n:()=>3},
+  {id:"newsym", t:()=>`Daha önce hiç almadığın bir şey al`, n:()=>1},
+  {id:"asset",  t:()=>`Altın, döviz ya da kriptodan al`, n:()=>1},
+  {id:"short",  t:()=>`Bir açığa satış yap`, n:()=>1},
+  {id:"stop",   t:()=>`Bir pozisyonuna stop emri koy`, n:()=>1},
+  {id:"fill",   t:()=>`Bir limit ya da stop emrin gerçekleşsin`, n:()=>1},
+  {id:"vol",    t:n=>`Bugün toplam ${mtl(n)} işlem hacmi yap`, n:eq=>Math.max(20000, Math.round(eq*0.5/1000)*1000)},
+  {id:"pnl",    t:n=>`Günü en az %${n} kârla bitir`, n:()=>1, pnl:true},
+  {id:"lux",    t:()=>`Bir lüks eşya al`, n:()=>1, cond:eq=>eq>5e6},
+  {id:"job",    t:()=>`Bir işte çalış (gün sonunda işin olsun)`, n:()=>1, cond:()=>!career().job},
+];
+function genTasks(day){
+  const L=life(), eq=Math.max(0,gameEq()); const pool=TASKS.filter(x=>!x.cond||x.cond(eq)); const out=[];
+  while (out.length<3 && pool.length){ const i=Math.floor(Math.random()*pool.length); const x=pool.splice(i,1)[0]; out.push({id:x.id, n:x.n(eq), p:0, done:false, claimed:false}); }
+  L.tasks={day, list:out, eq0:eq, ever:Object.keys(L.ever).length};
+}
+function taskReward(){ const L=life(); const base=Math.max(2000, Math.max(0,gameEq())*0.01); return Math.round(base*Math.min(2,1+L.streak*0.1)); }
+function taskEvent(type, d={}){
+  if (!isSim()||!SIM) return; const L=life(); const T=L.tasks; if (!T||!T.list) return;
+  const g=d.sym&&CM()[d.sym];
+  for (const k of T.list){ if (k.done) continue;
+    if (type==="trade"){ if (k.id==="trades") k.p++; if (k.id==="vol") k.p+=d.amt||0;
+      if (k.id==="newsym" && d.side==="buy" && !L.ever[d.sym]) k.p=1;
+      if (k.id==="asset" && d.side==="buy" && g && g.k) k.p=1;
+      if (k.id==="short" && d.side==="short") k.p=1; }
+    if (type==="order" && k.id==="stop" && d.type==="stp") k.p=1;
+    if (type==="fill" && k.id==="fill") k.p=1;
+    if (type==="lux" && k.id==="lux") k.p=1;
+    if (k.p>=k.n){ k.done=true; toast(`✅ Görev tamam: ${TASKS.find(x=>x.id===k.id).t(k.n)} — ödülünü Hayat'tan al`); sfx("task"); }
+  }
+  if (type==="trade" && d.side==="buy") L.ever[d.sym]=1;
+}
+function taskTick(){
+  const L=life(), T=L.tasks; if (!T||!T.list) return;
+  for (const k of T.list){ if (k.done) continue;
+    if (k.id==="pnl"){ const eq0=S.dayStart.eq||gameEq(); const pct=eq0>0?(gameEq()/eq0-1)*100:0; k.p=Math.max(0,+pct.toFixed(2)); if (pct>=k.n){ k.done=true; toast("✅ Görev tamam: günlük kâr hedefi — ödülünü al"); sfx("task"); } }
+    if (k.id==="job" && career().job){ k.p=1; k.done=true; }
+  }
+}
+function claimTask(i){ const L=life(), k=L.tasks.list[+i]; if (!k||!k.done||k.claimed) return; const r=taskReward(); k.claimed=true; ACC.game.cash+=r; career().exp+=1;
+  clog(`🎁 Görev ödülü: +${mtl(r)}${L.streak?` (🔥${L.streak} gün seri bonusu)`:""}`); toast(`🎁 +${mtl(r)}`); sfx("cash"); }
+function tasksClose(day){ const L=life(); const claimed=(L.tasks.list||[]).filter(k=>k.claimed).length;
+  if (L.tasks.day===day){ if (claimed>=2) L.streak++; else if (L.streak) { clog(`🔥 Seri bozuldu (${L.streak} gün).`); L.streak=0; } }
+  genTasks(day+1); }
+
+// ===== Rakipler & lig =====
+const RIVALS = [
+  {n:"Kartal Kemal", st:"Agresif", v:0.040, d:0.0030},
+  {n:"Temkinli Tülay", st:"Temkinli", v:0.010, d:0.0012},
+  {n:"Algo Rıza", st:"Robot", v:0.016, d:0.0022},
+  {n:"Kumarbaz Kaya", st:"Kumarbaz", v:0.075, d:0.0000},
+  {n:"Tahtacı Tekin", st:"Tahtacı", v:0.030, d:0.0028},
+];
+const SEASON_LEN = 20;
+function initRivals(day){
+  const L=life(), eq=Math.max(20000,gameEq());
+  if (!L.rivals.length) L.rivals=RIVALS.map(r=>({n:r.n, st:r.st, v:r.v, d:r.d, eq:Math.round(eq*(0.6+Math.random()*1.0)), eq0:0}));
+  for (const r of L.rivals) r.eq0=r.eq;
+  L.season={start:day, eq0:Math.max(1,gameEq())};
+}
+function leaderboard(){
+  const L=life(); if (!L.season) return [];
+  const me={n:"Sen", me:true, eq:gameEq(), ret:gameEq()/L.season.eq0-1};
+  return L.rivals.map(r=>({n:r.n, st:r.st, eq:r.eq, ret:r.eq/r.eq0-1})).concat([me]).sort((a,b)=>b.ret-a.ret);
+}
+function rivalsClose(day, live){
+  const L=life(); if (!L.season) { initRivals(day+1); return; }
+  for (const r of L.rivals){ const z=Math.max(-0.5, r.d + r.v*gauss() + (SIM.mkt||0)*0.8); r.eq=Math.max(1000, r.eq*Math.exp(z)); }
+  const op=career().op;
+  if (op){ const t=L.rivals.find(r=>r.st==="Tahtacı");
+    if (t && rnd()<0.14){ pushPrice(op.sym,-0.03); clog(`🥊 ${t.n} ${op.sym} tahtana ters işlem açtı (−%3).`); if (live) toast(`🥊 ${t.n} tahtana karşı oynuyor!`); }
+    if (rnd()<0.07){ const r=L.rivals[Math.floor(rnd()*L.rivals.length)]; op.heat=Math.min(100,op.heat+20); clog(`📞 ${r.n} seni SPK'ya ihbar etti (radar +20).`); if (live) toast(`📞 ${r.n} seni ihbar etti!`); }
+  }
+  if (day+1-L.season.start>=SEASON_LEN){
+    const lb=leaderboard(); const rank=lb.findIndex(x=>x.me)+1; L.seasons++;
+    const prize=[0.10,0.05,0.02][rank-1]||0; const eq=Math.max(0,gameEq()); const amt=Math.round(Math.min(eq*prize, 5e8));
+    if (amt>0) ACC.game.cash+=amt; if (rank===1) L.wins++;
+    clog(`🏆 Sezon ${L.seasons} bitti: ${rank}. oldun${amt?` — ödül +${mtl(amt)}`:""}. Birinci: ${lb[0].n} (%${fmt(lb[0].ret*100,1)}).`);
+    if (live) { toast(`🏆 Sezon bitti: ${rank}. sıradasın${amt?` (+${mtl(amt)})`:""}`); sfx(rank===1?"gong":"task"); }
+    for (const b of L.bets){ const myR=rank, rv=lb.findIndex(x=>x.n===b.r)+1; const win=myR<rv; ACC.game.cash+= win? b.x : -b.x; clog(`🎲 ${b.r} ile iddia: ${win?"kazandın +":"kaybettin −"}${mtl(b.x)}`); }
+    L.bets=[]; initRivals(day+1);
+  }
+}
+
+// ===== Şirketim (kur + halka arz) =====
+const IPO_MIN = 5e8;
+const SECTORS = [["teknoloji","💻 Teknoloji"],["enerji","⚡ Enerji"],["gida","🍞 Gıda"],["savunma","🛡️ Savunma"],["ulasim","✈️ Havacılık"],["madencilik","⛏️ Madencilik"]];
+function compValOf(a){ const c=a&&a.l&&a.l.comp; return c&&c.stage==="private"? c.val*0.8 : 0; }
+function compVal(){ return compValOf(ACC.game); }
+function compClose(live){
+  const C=life().comp; if (!C||C.stage!=="private") return;
+  const z=0.002 + 0.015*gauss() + (SIM.mkt||0)*0.5; C.val=Math.max(1e6, C.val*Math.exp(z)); C.days=(C.days||0)+1;
+  if (rnd()<0.06){ const up=rnd()<0.6; const k=up?1.12:0.9; C.val*=k; clog(`🏢 ${C.n}: ${up?"büyük bir sözleşme imzaladı (+%12 değer)":"önemli bir müşteriyi kaybetti (−%10 değer)"}.`); if (live) toast(`🏢 ${C.n} ${up?"büyüyor!":"zor günde"}`); }
+}
+function compAction(act){
+  const L=life(), a=ACC.game, day=simDay();
+  if (act==="c_found"){
+    if (L.comp&&L.comp.stage==="private") return toast("Zaten özel bir şirketin var.");
+    if (gameEq()<IPO_MIN) return toast(`Şirket kurmak için ${mtl(IPO_MIN)} varlık lazım.`);
+    const n=gv("cf_n").trim().slice(0,40), s=gv("cf_s").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6), cap=gnum("cf_cap",0)*1e6, sec=gv("cf_sec")||"teknoloji";
+    if (!n || s.length<3) return toast("Şirket adı ve en az 3 harfli kod gir.");
+    if (CM()[s]) return toast("Bu kod borsada var.");
+    if (cap<1e8) return toast("Kuruluş sermayesi en az 100 Mn ₺.");
+    if (a.cash<cap) return toast("Nakdin yetmiyor.");
+    a.cash-=cap; L.comp={n, s, sec, val:cap, stage:"private", day};
+    clog(`🏗️ ${n} (${s}) kuruldu: ${mtl(cap)} sermaye.`); toast(`🏗️ ${n} kuruldu!`); sfx("gong");
+  } else if (act==="c_inv"){ const C=L.comp; if (!C||C.stage!=="private") return; const x=Math.min(a.cash, Math.max(0,gnum("ci_x",0)*1e6)); if (x<1e6) return toast("En az 1 Mn ₺ yatır.");
+    a.cash-=x; C.val+=x*1.05; clog(`💼 ${C.n}'e ${mtl(x)} yatırım yaptın.`); toast(`💼 ${C.n} büyüdü`);
+  } else if (act==="c_div"){ const C=L.comp; if (!C||C.stage!=="private") return; if (C.lastDiv===day) return toast("Bugün zaten temettü çektin.");
+    const x=Math.round(C.val*0.05); C.val-=x; a.cash+=x; C.lastDiv=day; clog(`💰 ${C.n}'den ${mtl(x)} temettü çektin.`); toast(`💰 +${mtl(x)} temettü`); sfx("cash");
+  } else if (act.startsWith("c_ipo")){ const C=L.comp; if (!C||C.stage!=="private") return; if (C.val<1e9) return toast("Halka arz için şirket değeri en az 1 Mr ₺ olmalı.");
+    const fl=+act.split(":")[1]||0.25; const p=25, shares=Math.floor(C.val/p), sell=Math.floor(shares*fl), keep=shares-sell;
+    const g={s:C.s, n:C.n, p, v:0.03, b:1, sec:C.sec, L:Math.max(5e7,C.val*0.08), own:true};
+    SIM.co.push(g); SIM.bars[C.s]=[]; SIM.px[C.s]={x:p,p,prev:p,o:p,h:p,l:p,vol:0,mu:0.02}; SIM.ticks[C.s]=[[SIM.G%DAY,p]];
+    const got=Math.round(sell*p*0.97); a.cash+=got; a.pos[C.s]={qty:keep, avg:p, cost:keep*p};
+    career().frozen[C.s]=day+1+20; C.stage="public"; C.ipoDay=day;
+    addNews(`${C.n} (${C.s}) halka arz oldu! %${Math.round(fl*100)}'i 25 ₺'den satıldı`, true, true);
+    clog(`🔔 Halka arz: ${C.n}. %${Math.round(fl*100)} satıldı (+${mtl(got)}), elinde ${fmt(keep,0)} lot kaldı. 20 gün satış yasağı (lock-up).`); sfx("gong");
+    L.comp=null; L.lastIpo={n:C.n, s:C.s};
+  }
+  save(); syncQG(); renderAll();
+}
+
+// ===== Hikâye olayları =====
+const EVENTS = [
+  {id:"kuzen", cond:eq=>eq>20000, make:eq=>({x:Math.round(Math.max(5000,eq*0.03))}),
+   t:d=>`Kuzenin iş kurmak için senden ${mtl(d.x)} borç istiyor. "Söz, 5 güne faiziyle öderim" diyor.`, a:"Ver", b:"Kibarca reddet",
+   A:d=>{ ACC.game.cash-=d.x; life().pend.push({day:simDay()+5, type:"kuzen", x:d.x}); return "Parayı verdin. Bakalım sözünü tutacak mı..."; },
+   B:()=>"Kuzenin biraz bozuldu ama anlayışla karşıladı."},
+  {id:"insider", cond:()=>true, make:()=>{ const st=CO().filter(isStock); const g=st[Math.floor(Math.random()*st.length)]; return {s:g.s, n:g.n}; },
+   t:d=>`Eski patronun fısıldıyor: "${d.n} (${d.s}) için yarın çok büyük bir haber çıkacak." İçeriden bilgi bu.`, a:"Bilgiyi kullan", b:"Reddet, temiz kal",
+   A:d=>{ life().pend.push({day:simDay()+1, type:"insider", s:d.s}); if (cfg().spk && Math.random()<0.25) life().pend.push({day:simDay()+3, type:"insiderSpk"}); return `${d.s} için yarın büyük haber bekleniyor. Pozisyonunu al... ama SPK uyuyor mu?`; },
+   B:()=>{ life().status+=5; return "Temiz kaldın. Statün +5."; }},
+  {id:"telegram", cond:()=>true, make:eq=>({x:Math.round(Math.min(50000,Math.max(2000,eq*0.02)))}),
+   t:d=>`Telegram'da "%1000 garantili sinyal" grubu. Üyelik ${mtl(d.x)}.`, a:"Katıl", b:"Geç",
+   A:d=>{ ACC.game.cash-=d.x; const st=CO().filter(isStock); const g=st[Math.floor(Math.random()*st.length)]; life().pend.push({day:simDay()+1, type:"pump", s:g.s}); return `Grup yarın sabah ${g.s} için "uçacak" diyor. Pompadan sonra genelde döküm gelir...`; },
+   B:()=>"Mantıklı. Garantili sinyal diye bir şey yok."},
+  {id:"vergi", cond:eq=>eq>1e7, make:eq=>({x:Math.round(eq*0.005), f:Math.round(eq*0.03)}),
+   t:d=>`Vergi müfettişleri kapında. İyi bir mali müşavir ${mtl(d.x)} istiyor.`, a:"Müşavir tut", b:"Kendim hallederim",
+   A:d=>{ ACC.game.cash-=d.x; return "Müşavir her şeyi temiz çıkardı."; },
+   B:d=>{ if (Math.random()<0.5){ ACC.game.cash-=d.f; return `Eksik beyan çıktı: −${mtl(d.f)} ceza.`; } return "Şanslısın, her şey temiz çıktı."; }},
+  {id:"bagis", cond:eq=>eq>50000, make:eq=>({x:Math.round(eq*0.01)}),
+   t:d=>`Deprem bölgesi için bağış kampanyası başladı. ${mtl(d.x)} bağışlayabilirsin.`, a:"Bağışla", b:"Bu sefer değil",
+   A:d=>{ ACC.game.cash-=d.x; life().status+=10; return "Teşekkürler! Statün +10."; }, B:()=>"Belki bir dahaki sefere."},
+  {id:"galeri", cond:eq=>eq>4e7 && !life().items.some(i=>i.id==="car3"), make:()=>({}),
+   t:()=>`Tanıdık galerici Ferrari SF90'ı %25 indirimle sana ayırmış (${mtl(LUXM.car3.p*0.75)}).`, a:"Al", b:"Hayır",
+   A:()=>{ return buyLux("car3",0.25)? "Ferrari kapında!" : "Nakit yetmedi, galerici başkasına sattı."; }, B:()=>"Galerici kırıldı ama olsun."},
+  {id:"hack", cond:eq=>eq>5e5, make:eq=>({x:Math.round(eq*0.003)}),
+   t:d=>`Hesabına şüpheli giriş denemeleri var. Siber güvenlik firması ${mtl(d.x)} istiyor.`, a:"Firmayı tut", b:"Riski al",
+   A:d=>{ ACC.game.cash-=d.x; return "Hesabın güvende."; },
+   B:()=>{ if (Math.random()<0.3 && ACC.game.cash>0){ const l=Math.round(ACC.game.cash*0.05); ACC.game.cash-=l; return `Hackerlar ${mtl(l)} çekti!`; } return "Bu sefer bir şey olmadı."; }},
+  {id:"tv", cond:eq=>eq>1e8, make:()=>({}),
+   t:()=>`Bir haber kanalı "Borsanın yeni kralı" röportajı için seni istiyor.`, a:"Yayına çık", b:"Gizli kal",
+   A:()=>{ life().status+=25; const op=career().op; if (op) op.heat=Math.min(100,op.heat+10); return "Herkes seni konuşuyor! Statün +25" + (op?", ama SPK da izledi (radar +10).":"."); },
+   B:()=>{ const op=career().op; if (op) op.heat=Math.max(0,op.heat-10); return "Sessiz kalmak bazen en iyisi" + (op?" (radar −10).":"."); }},
+  {id:"coin", cond:eq=>eq>10000, make:eq=>({x:Math.round(eq*0.02)}),
+   t:d=>`Arkadaşın "AnkaCoin (ANKC) uçacak, ${mtl(d.x)} bas" diyor.`, a:"Bas", b:"Hayır",
+   A:d=>{ const p=SIM.px.ANKC&&SIM.px.ANKC.p; if (!p) return "ANKC bulunamadı."; const q=fq(d.x/p/(1+S.feeRate/1000),"ANKC"); const r=execute("buy","ANKC",q,p,"market"); return r.ok? `${fqty(q,"ANKC")} ANKC aldın. Kemerleri bağla!` : "Alım yapılamadı: "+r.err; },
+   B:()=>"Meme coin'lerden uzak durmak akıllıca olabilir."},
+  {id:"zam", cond:()=>!!career().job, make:()=>({}),
+   t:()=>`Patronun %20 zam teklif ediyor ama mesai artacak, gece de çalışacaksın.`, a:"Kabul", b:"Hayır",
+   A:()=>{ career().wb=(career().wb||0)+0.2; return "Maaşın %20 arttı."; }, B:()=>"Zamanını borsaya ayırıyorsun."},
+  {id:"iddia", cond:()=>life().season && life().rivals.length, make:eq=>{ const r=life().rivals[Math.floor(Math.random()*life().rivals.length)]; return {r:r.n, x:Math.round(Math.max(5000,eq*0.03))}; },
+   t:d=>`${d.r} sana meydan okuyor: "Bu sezon beni geçemezsin. ${mtl(d.x)}'sine iddiaya var mısın?"`, a:"Kabul", b:"Reddet",
+   A:d=>{ life().bets.push({r:d.r, x:d.x}); return `İddia kabul! Sezon sonunda ${d.r}'in önünde bitirirsen ${mtl(d.x)} kazanırsın.`; }, B:()=>"Laf kalabalığına gerek yok."},
+];
+function pendClose(day, live){
+  const L=life(); const due=L.pend.filter(p=>p.day<=day+1); L.pend=L.pend.filter(p=>p.day>day+1);
+  for (const p of due){
+    if (p.type==="kuzen"){ if (Math.random()<0.6){ ACC.game.cash+=Math.round(p.x*1.3); clog(`🤝 Kuzenin borcunu faiziyle ödedi: +${mtl(p.x*1.3)}`); } else clog("😬 Kuzenin işi batırdı, parayı geri ödeyemedi."); }
+    if (p.type==="insider"){ const up=Math.random()<0.7; const g=CM()[p.s]; if (g) SIM.sched.unshift({sec:30, sym:p.s, chg:up?0.08:-0.05, t: up? `${g.n} dev bir satın alma anlaşması açıkladı` : `${g.n} beklenen anlaşmanın iptal olduğunu duyurdu`}); }
+    if (p.type==="insiderSpk"){ const f=Math.round(Math.max(0,gameEq())*0.1); ACC.game.cash-=f; clog(`🚨 SPK içeriden bilgi kullanımını tespit etti: −${mtl(f)} ceza.`); if (live) toast(`🚨 SPK: içeriden bilgi cezası −${mtl(f)}`); }
+    if (p.type==="pump"){ const g=CM()[p.s]; if (g){ SIM.sched.unshift({sec:20, sym:p.s, chg:0.06, t:`Sosyal medyada ${g.n} coşkusu: "uçuyor!"`}); L.pend.push({day:day+2, type:"dump", s:p.s}); } }
+    if (p.type==="dump"){ const g=CM()[p.s]; if (g) SIM.sched.unshift({sec:40, sym:p.s, chg:-0.08, t:`${g.n}: pompacılar malı boşalttı, sert düşüş`}); }
+  }
+  SIM.sched.sort((a,b)=>a.sec-b.sec);
+}
+let evShown=null;
+function maybeEvent(){ const L=life(); if (evShown||!L.evq.length) return; if (document.querySelector(".sheet.show")||$("chooser").classList.contains("show")||$("broke").classList.contains("show")) return;
+  const e=L.evq.shift(); const E=EVENTS.find(x=>x.id===e.id); if (!E) return; evShown=e;
+  $("evTxt").textContent=E.t(e.d); $("evA").textContent=E.a; $("evB").textContent=E.b; $("evRes").textContent=""; $("evBtns").style.display=""; $("evOk").style.display="none";
+  $("evModal").classList.add("show"); sfx("news"); }
+function evChoose(which){ const e=evShown; if (!e) return; const E=EVENTS.find(x=>x.id===e.id); const r=(which==="A"?E.A:E.B)(e.d)||"";
+  clog(`🎴 ${E.t(e.d).slice(0,60)}… → ${which==="A"?E.a:E.b}. ${r}`); $("evRes").textContent=r; $("evBtns").style.display="none"; $("evOk").style.display=""; save(); renderAll(); }
+function evClose(){ evShown=null; $("evModal").classList.remove("show"); }
+function eventsRoll(day){ const L=life(); if (L.evq.length>=2) return; if (rnd()<0.35){ const eq=Math.max(0,gameEq()); const ok=EVENTS.filter(x=>x.cond(eq)); if (!ok.length) return; const E=ok[Math.floor(rnd()*ok.length)]; L.evq.push({id:E.id, d:E.make(eq)}); } }
+
+// ===== gün sonu =====
+function lifeClose(day, live){
+  const L=life(); L.dc=(L.dc||0)+1;
+  luxClose(live); compClose(live); pendClose(day, live); rivalsClose(day, live); tasksClose(day); if (L.dc>=3) eventsRoll(day);
+}
+
+// ===== Hayat sekmesi =====
+function lifeBody(sub){
+  const L=life(), eq=gameEq(), day=simDay();
+  if (sub==="gorev"){
+    const T=L.tasks; const r=taskReward();
+    return `<div class="card"><h3>🎯 Günün görevleri · ${dayLabel(Math.max(0,T.day))}</h3><div class="sub" style="margin-bottom:8px">Her görev +${mtl(r)}. Günde en az 2 ödül alırsan serin büyür, ödüller artar (en fazla 2 kat).</div>
+      ${(T.list||[]).map((k,i)=>{ const x=TASKS.find(t=>t.id===k.id); const prog = k.id==="vol"? `${mtl(Math.min(k.p,k.n))} / ${mtl(k.n)}` : k.id==="pnl"? `%${fmt(Math.min(k.p,k.n),2)} / %${k.n}` : `${Math.min(k.p,k.n)} / ${k.n}`;
+        return `<div class="row" style="padding:9px 0"><div style="flex:1;padding-right:8px"><div style="font-size:14px;font-weight:600">${k.claimed?"✅ ":k.done?"🎁 ":"▫️ "}${x.t(k.n)}</div><div class="bar" style="margin-top:5px"><i style="width:${Math.min(100,(k.p/k.n)*100)}%;background:${k.done?"var(--up)":"var(--acc)"}"></i></div><div class="sub">${prog}</div></div>${k.claimed?`<span class="pill">Alındı</span>`:`<button class="btn ${k.done?"pri":""}" ${k.done?`data-act="t_claim" data-arg="${i}"`:"disabled style='opacity:.45'"}>Ödül</button>`}</div>`; }).join("")}
+      <div class="sub" style="margin-top:8px">🔥 Seri: <b>${L.streak}</b> gün · ödül çarpanı x${fmt(Math.min(2,1+L.streak*0.1),1)}</div></div>`;
+  }
+  if (sub==="lux"){
+    const own=L.items;
+    let h=`<div class="card"><h3>🛍️ Sahip oldukların · ${own.length}</h3>`;
+    h+= own.length? own.map(it=>{ const x=LUXM[it.id]; return `<div class="row" style="padding:8px 0"><div><div class="sym" style="font-size:14px">${x.c.split(" ")[0]} ${x.n}</div><div class="sub">Değeri ${mtl(it.val)} · satarsan ${mtl(it.val*x.rs)} · ${x.up>0?`kira +${mtl(it.val*x.up)}/gün`:x.up<0?`bakım −${mtl(-it.val*x.up)}/gün`:"masrafsız"}</div></div><button class="btn" data-act="l_sell" data-arg="${it.uid}">Sat</button></div>`; }).join("")
+      : `<div class="sub">Henüz bir şeyin yok. Parayı kazanmak güzel, harcamak daha güzel.</div>`;
+    if (L.lastLux) h+=`<div class="sub" style="margin-top:6px">Dünkü kira − bakım: <span class="${cls(L.lastLux)}">${L.lastLux>=0?"+":""}${mtl(L.lastLux)}</span></div>`;
+    h+=`</div><div class="card"><h3>🏪 Mağaza</h3>`+LUX.map(x=>`<div class="row" style="padding:8px 0"><div><div class="sym" style="font-size:14px">${x.c.split(" ")[0]} ${x.n}</div><div class="sub">${mtl(x.p)} · ⭐+${x.st} · ${x.up>0?"kira getirir":x.up<0?"bakım ister":"değer korur"}${x.ap>0?", değerlenir":x.ap<0?", değer kaybeder":""}</div></div><button class="btn ${ACC.game.cash>=x.p?"pri":""}" data-act="l_buy" data-arg="${x.id}">Al</button></div>`).join("")+`<div class="sub" style="margin-top:8px">Eşyalar varlığına satış değeriyle eklenir ama kaldıraç teminatı sayılmaz. Borcunu ödeyemezsen önce eşyalarına haciz gelir.</div></div>`;
+    return h;
+  }
+  if (sub==="rakip"){
+    const lb=leaderboard(); if (!L.season) return `<div class="card"><div class="sub">Lig yarın başlıyor.</div></div>`;
+    const left=SEASON_LEN-(day+1-L.season.start);
+    return `<div class="card"><h3>🏆 Sezon ${L.seasons+1} · ${Math.max(0,left)} gün kaldı</h3><div class="sub" style="margin-bottom:6px">Sıralama sezon başından beri getiri yüzdesine göre. İlk üç: varlığının %10 / %5 / %2'si ödül. Kazandığın sezon: ${L.wins}</div>
+      ${lb.map((x,i)=>`<div class="row" style="padding:9px 0;${x.me?"background:#f5b83d14;margin:0 -14px;padding-left:14px;padding-right:14px":""}"><div><div class="sym" style="font-size:14px">${["🥇","🥈","🥉"][i]||(i+1)+"."} ${x.n}${x.st?` <span class="pill">${x.st}</span>`:""}</div><div class="sub">${mtl(x.eq)}</div></div><div class="pnl ${cls(x.ret)}">${x.ret>=0?"+":""}${fmt(x.ret*100,1)}%</div></div>`).join("")}
+      ${L.bets.length?`<div class="sub" style="margin-top:8px">🎲 Açık iddiaların: ${L.bets.map(b=>`${b.r} (${mtl(b.x)})`).join(", ")}</div>`:""}
+      <div class="sub" style="margin-top:8px">Tahta kurarsan Tahtacı Tekin karşına geçebilir; rakipler seni SPK'ya ihbar edebilir.</div></div>`;
+  }
+  if (sub==="sirket"){
+    const C=L.comp;
+    if (!C){ const ok=eq>=IPO_MIN;
+      return `<div class="card"><h3>🏗️ Kendi şirketini kur</h3><div class="sub">Varlığın ${mtl(IPO_MIN)}'yi geçince şirket kurabilirsin. Şirket değeri her gün büyür (ya da küçülür); yatırım yapıp temettü çekebilirsin. Değeri 1 Mr ₺'yi geçince halka arz edip borsaya açabilirsin.</div>
+        ${L.lastIpo?`<div class="sub" style="margin-top:6px">Son halka arzın: <b>${esc(L.lastIpo.n)} (${L.lastIpo.s})</b> — Piyasa'da işlem görüyor.</div>`:""}
+        ${ok?`<div class="grid2" style="margin-top:10px"><div class="field" style="padding:0;grid-column:1/3"><label>Şirket adı</label><input id="cf_n" placeholder="Anadolu Uzay Teknolojileri" style="font-size:15px"></div>
+          <div class="field" style="padding:0"><label>Borsa kodu</label><input id="cf_s" maxlength="6" placeholder="ANUZY" style="text-transform:uppercase"></div>
+          <div class="field" style="padding:0"><label>Sermaye (Mn ₺)</label><input id="cf_cap" inputmode="decimal" placeholder="100"></div>
+          <div class="field" style="padding:0;grid-column:1/3"><label>Sektör</label><select id="cf_sec" style="width:100%;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:15px">${SECTORS.map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}</select></div></div>
+          <button class="btn pri" data-act="c_found" style="width:100%;margin-top:10px">🏗️ Şirketi kur</button>`
+        : `<div class="bar" style="margin-top:10px"><i style="width:${Math.max(1,Math.min(100,eq/IPO_MIN*100))}%"></i></div><div class="sub" style="margin-top:4px">${mtl(eq)} / ${mtl(IPO_MIN)}</div>`}</div>`; }
+    return `<div class="card"><h3>🏢 ${esc(C.n)} (${C.s})</h3><div class="grid2"><div class="kv"><div class="k">Şirket değeri</div><div class="v">${mtl(C.val)}</div></div><div class="kv"><div class="k">Kuruluştan beri</div><div class="v">${C.days||0} gün</div></div></div>
+      <div class="add" style="padding:10px 0 0"><input id="ci_x" inputmode="decimal" placeholder="Yatırım (Mn ₺)" style="text-transform:none"><button class="btn pri" data-act="c_inv">Yatır</button></div>
+      <div class="mbtns" style="margin-top:8px"><button class="btn" data-act="c_div">💰 Temettü çek (%5)</button></div>
+      <div class="sub" style="margin:12px 0 6px">🔔 Halka arz ${C.val>=1e9?"(hisseler 25 ₺'den satılır, kalanı sende kalır; 20 gün satış yasağı)":"— değer 1 Mr ₺'yi geçince açılır"}</div>
+      <div class="mbtns">${[0.15,0.25,0.4].map(f=>`<button class="btn ${C.val>=1e9?"pri":""}" data-act="c_ipo:${f}" ${C.val>=1e9?"":"style='opacity:.45'"}>%${f*100} sat</button>`).join("")}</div></div>`;
+  }
+  return "";
+}
+
+// ===== Ses & titreşim =====
+let AC=null; const SND={on:true, vib:true};
+function sndLoad(){ const v=lsGet("arena_snd"); if (v){ SND.on=v.on!==false; SND.vib=v.vib!==false; } }
+function sndSave(){ lsSet("arena_snd", SND); }
+let gestured=false;
+function acInit(){ gestured=true; if (AC) return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } }
+function tone(f, t0, d, type="sine", vol=0.12){ const o=AC.createOscillator(), g=AC.createGain(); o.type=type; o.frequency.setValueAtTime(f, AC.currentTime+t0); g.gain.setValueAtTime(0.0001, AC.currentTime+t0); g.gain.exponentialRampToValueAtTime(vol, AC.currentTime+t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime+t0+d); o.connect(g); g.connect(AC.destination); o.start(AC.currentTime+t0); o.stop(AC.currentTime+t0+d+0.05); }
+const VIB={buy:[30], sell:[30], stop:[80,60,80], gong:[200], alarm:[200,100,200,100,200], task:[40,40,40], cash:[20], news:[15]};
+function sfx(n){
+  if (SND.vib && gestured && navigator.vibrate && VIB[n]) { try{ navigator.vibrate(VIB[n]); }catch(e){} }
+  if (!SND.on || !AC) return; try{ if (AC.state==="suspended") AC.resume();
+  if (n==="buy"){ tone(880,0,.12,"triangle"); tone(1320,.08,.18,"triangle"); }
+  else if (n==="sell"){ tone(1320,0,.12,"triangle"); tone(880,.08,.18,"triangle"); }
+  else if (n==="cash"){ tone(1568,0,.08,"square",.05); tone(2093,.06,.2,"square",.05); }
+  else if (n==="stop"){ tone(220,0,.25,"sawtooth",.08); tone(165,.18,.3,"sawtooth",.08); }
+  else if (n==="gong"){ [196,392,588,784].forEach((f,i)=>tone(f,0,1.6-i*.2,"sine",.12/(i+1))); }
+  else if (n==="news"){ tone(988,0,.15,"sine",.07); }
+  else if (n==="task"){ [523,659,784,1047].forEach((f,i)=>tone(f,i*.08,.2,"triangle",.08)); }
+  else if (n==="alarm"){ for (let i=0;i<3;i++){ tone(440,i*.3,.15,"square",.07); tone(330,i*.3+.15,.15,"square",.07); } }
+  }catch(e){}
+}
+let gongSeen={};
+function gongCheck(){ if (!isSim()||!SIM) return; const d=simDay(); for (const [s,p] of Object.entries(ACC.game.pos)){ const q=SIM.px[s], g=CM()[s]; if (!q||!g||g.k||!cfg().band||p.qty<=0) continue;
+  if (q.p>=roundTick(q.prev*(1+cfg().band))-1e-9 && gongSeen[s]!==d){ gongSeen[s]=d; toast(`🔔 ${s} TAVAN!`); sfx("gong"); } } }
+
 // ---------- valuation ----------
-function equity(){ let v=S.cash + (isSim()? myPoolShare()-fin().loan:0); for (const o of S.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
+function equity(){ let v=S.cash + (isSim()? myPoolShare()-fin().loan+luxVal()+compVal():0); for (const o of S.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
 function stockVal(){ let v=0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
 function rankOf(eq){ let r=RANKS[0], nx=null; for (let i=0;i<RANKS.length;i++){ if (eq>=RANKS[i].min){ r=RANKS[i]; nx=RANKS[i+1]||null; } } return {r,nx}; }
 function feeOf(amount){ return Math.round(amount*S.feeRate/1000*100)/100; }
@@ -1069,7 +1442,8 @@ function runOrders(priceOf, live){
     S.orders = S.orders.filter(x=>x.id!==o.id);
     const r = execute(o.side,o.sym,o.qty,fillPx,o.type==="stp"?"stop":"limit", o.reserved||0);
     fills.push(o);
-    if (live){ if (r.ok) toast(`${o.type==="stp"?"🛑 Stop":"✅ Limit"} gerçekleşti: ${o.sym} ${o.qty} lot @ ${fmt(fillPx)}`); else toast(`⚠️ ${o.sym} emri iptal: ${r.err}`); }
+    if (r.ok && isSim()) taskEvent("fill");
+    if (live){ if (r.ok){ toast(`${o.type==="stp"?"🛑 Stop":"✅ Limit"} gerçekleşti: ${o.sym} ${fqty(o.qty,o.sym)} @ ${fmt(fillPx)}`); sfx(o.type==="stp"?"stop":o.side==="buy"?"buy":"sell"); } else toast(`⚠️ ${o.sym} emri iptal: ${r.err}`); }
   }
   if (fills.length && isSim()) save();
   return fills;
@@ -1077,6 +1451,18 @@ function runOrders(priceOf, live){
 function execute(side,sym,qty,px,via,reserved=0){
   const amt = Math.round(qty*px*100)/100, fee = feeOf(amt);
   const g = isSim()&&SIM ? dayLabel(Math.floor(SIM.G/DAY))+" "+gTime(SIM.G) : null;
+  if (side==="buy" && S.pos[sym] && S.pos[sym].qty<0){
+    const p=S.pos[sym]; const q2=Math.min(qty,-p.qty); const amt2=Math.round(q2*px*100)/100, fee2=feeOf(amt2);
+    const basis=p.avg*q2, pnl=basis-amt2-fee2;
+    S.cash += reserved - amt2 - fee2; p.qty+=q2; p.cost+=basis; if (Math.abs(p.qty)<1e-9) delete S.pos[sym];
+    S.trades.unshift({t:Date.now(),g,side:"cover",sym,qty:q2,px,fee:fee2,via,pnl}); S.fees+=fee2; return {ok:true};
+  }
+  if (side==="short"){
+    const p0=S.pos[sym]; if (p0&&p0.qty>0) return {ok:false, err:"önce uzun pozisyonunu sat"};
+    if (amt+fee > buyingPower()+0.001) return {ok:false, err:"teminat yetersiz"};
+    const p=p0||{qty:0,avg:0,cost:0}; S.cash += amt-fee; p.qty-=qty; p.cost-=(amt-fee); p.avg=p.cost/p.qty; S.pos[sym]=p;
+    S.trades.unshift({t:Date.now(),g,side:"short",sym,qty,px,fee,via,pnl:null}); S.fees+=fee; return {ok:true};
+  }
   if (side==="buy"){
     const avail = buyingPower() + reserved;
     if (amt+fee > avail+0.001) { S.cash += reserved; return {ok:false, err:"nakit yetersiz"}; }
@@ -1130,11 +1516,13 @@ function renderList(){
   $("list").innerHTML = watchList().map(s=>{
     const q=Q[s]||{}; const c=chgOf(s); const own=S.pos[s];
     const sub = isSim()? (CM()[s]?CM()[s].n:"") : (q.vol?"Hacim "+fmtBig(q.vol):"—");
-    return `<div class="row" data-s="${s}"><div><div class="sym">${s}${own?`<span class="pill">${fmt(own.qty,0)} lot</span>`:""}</div><div class="sub">${esc(sub)}</div></div>
+    const g=isSim()&&CM()[s]; if (isSim() && mfilter!=="all" && (mfilter==="hisse"? !!(g&&g.k) : !(g&&g.k===mfilter))) return "";
+    return `<div class="row" data-s="${s}"><div><div class="sym">${s}${g&&g.k?`<span class="pill">${KIND[g.k]}</span>`:""}${own?`<span class="pill" style="${own.qty<0?"color:var(--down)":""}">${own.qty<0?"açığa ":""}${fqty(Math.abs(own.qty),s)} ${unitOf(s)}</span>`:""}</div><div class="sub">${esc(sub)}</div></div>
       <div class="px"><b class="${q.flash?"flash-"+q.flash:""}">${q.price?fmt(q.price):"—"}</b><span class="chg ${c==null?"flat":c>0?"up":c<0?"down":"flat"}">${c==null?"—":sgn(c)+"%"}</span></div></div>`;
   }).join("");
   for (const s in Q) if (Q[s]) Q[s].flash=null;
   $("addRow").style.display = isSim()?"none":"";
+  $("mfilter").innerHTML = isSim()? `<div class="chips" style="padding:8px 16px 0">${[["all","Tümü"],["hisse","Hisse"],["emtia","Altın"],["doviz","Döviz"],["kripto","Kripto"]].map(([k,l])=>`<button data-act="mf" data-arg="${k}" style="${mfilter===k?"background:var(--acc);color:#111":""}">${l}</button>`).join("")}</div>` : "";
 }
 function renderPort(){
   const eq=equity();
@@ -1143,8 +1531,8 @@ function renderPort(){
   $("pFee").textContent=tl(S.fees);
   const ents=Object.entries(S.pos);
   $("posList").innerHTML = ents.length? ents.map(([s,p])=>{
-    const px=(Q[s]&&Q[s].price)||p.avg, val=p.qty*px, pnl=val-p.cost, pct=pnl/p.cost*100;
-    return `<div class="row" data-s="${s}"><div><div class="sym">${s}</div><div class="sub">${fmt(p.qty,0)} lot · ort. ${fmt(p.avg)}</div></div>
+    const px=(Q[s]&&Q[s].price)||p.avg, val=p.qty*px, pnl=val-p.cost, pct=pnl/Math.abs(p.cost)*100;
+    return `<div class="row" data-s="${s}"><div><div class="sym">${s}${p.qty<0?` <span class="pill" style="color:var(--down)">AÇIĞA SATIŞ</span>`:""}</div><div class="sub">${fqty(Math.abs(p.qty),s)} ${unitOf(s)} · ort. ${fmt(p.avg)}</div></div>
       <div class="px"><b>${tl(val)}</b><span class="pnl ${cls(pnl)}">${sgn(pnl)} ₺ (${sgn(pct)}%)</span></div></div>`;
   }).join("") : `<div class="empty">Henüz hissen yok. Piyasa'dan bir hisseye dokunup ilk alımını yap.</div>`;
   $("badges").innerHTML = BADGES.map(b=>`<span class="badge ${b.t(S,eq)?"got":""}">${b.t(S,eq)?"🏅 ":"🔒 "}${b.n}</span>`).join("");
@@ -1158,12 +1546,12 @@ function renderOrders(){
 function renderHist(){
   $("histList").innerHTML = S.trades.length? S.trades.slice(0,80).map(t=>{
     const d=t.g || new Date(t.t).toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"});
-    return `<div class="row"><div><div class="sym">${t.sym} <span class="pill" style="color:${t.side==="buy"?"var(--up)":"var(--down)"}">${t.side==="buy"?"AL":"SAT"}${t.via!=="market"?" · "+t.via:""}</span></div><div class="sub">${d} · ${fmt(t.qty,0)} lot @ ${fmt(t.px)}</div></div>
+    return `<div class="row"><div><div class="sym">${t.sym} <span class="pill" style="color:${t.side==="buy"||t.side==="cover"?"var(--up)":"var(--down)"}">${{buy:"AL",sell:"SAT",short:"AÇIĞA SAT",cover:"AÇIĞI KAPAT"}[t.side]||t.side}${t.via!=="market"?" · "+t.via:""}</span></div><div class="sub">${d} · ${fqty(t.qty,t.sym)} @ ${fmt(t.px)}</div></div>
       <div class="px">${t.pnl==null?`<span class="mut">${tl(t.qty*t.px)}</span>`:`<span class="pnl ${cls(t.pnl)}">${sgn(t.pnl)} ₺</span>`}</div></div>`;
   }).join("") : `<div class="empty">İşlem geçmişi boş.</div>`;
   $("feeIn").value = S.feeRate;
   $("resetBtn").textContent = isSim()? "Oyunu sıfırla (yeni piyasa, 100.000 ₺)" : "Demo hesabı sıfırla (100.000 ₺)";
-  renderStore();
+  renderStore(); renderSnd();
   $("disc").textContent = isSim()? "Oyun Modu'ndaki şirketler, haberler ve fiyatlar tamamen kurgusaldır. Para sanaldır." : "Fiyatlar Borsa İstanbul'dan yaklaşık 15 dk gecikmeli gelir. Para tamamen sanaldır; bu bir oyundur, yatırım tavsiyesi değildir.";
 }
 function renderAll(){ renderHeader(); renderNews(); renderList(); if (view==="port"){ renderPort(); renderFin(); } if (view==="orders") renderOrders(); if (view==="hist") renderHist(); if (view==="career") renderCareer(); }
@@ -1198,8 +1586,8 @@ function drawCandles(cv, bars){
 function drawEq(){ const pts=S.eqHist.length>1?S.eqHist:[[0,START],[1,equity()]]; drawLine($("eqChart"),pts,equity()>=START?"#1fbf75":"#ef4f5a",START); }
 
 // ---------- detail / order sheet ----------
-let cur=null, side="buy", otype="mkt", ctab="intra"; const HIST={};
-function openDetail(s){ cur=s; $("oQty").value=""; $("oPx").value=""; otype="mkt"; setSide("buy"); setType("mkt"); $("sheet").classList.add("show"); $("sheetBg").classList.add("show"); renderDetail(true); }
+let cur=null, side="buy", otype="mkt", ctab="intra", mfilter="all"; const HIST={};
+function openDetail(s){ cur=s; document.querySelector('.tabs.side [data-s="short"]').style.display = isSim()? "" : "none"; $("oQty").step = qStep(s); $("oQty").value=""; $("oPx").value=""; otype="mkt"; setSide("buy"); setType("mkt"); $("sheet").classList.add("show"); $("sheetBg").classList.add("show"); renderDetail(true); }
 function closeDetail(){ cur=null; $("sheet").classList.remove("show"); $("sheetBg").classList.remove("show"); }
 async function loadHist(s, period){
   if (isSim()){
@@ -1236,54 +1624,63 @@ async function drawChart(){
 }
 function setSide(v){ side=v; document.querySelectorAll(".tabs.side button").forEach(b=>b.classList.toggle("on",b.dataset.s===v));
   const stp=document.querySelector('#typeTabs [data-t="stp"]'); stp.style.display=v==="buy"?"none":""; if (v==="buy"&&otype==="stp"){ $("oPx").value=""; setType("lmt"); }
+  if (v==="short" && otype!=="mkt") setType("mkt");
+  document.querySelectorAll("#typeTabs button").forEach(b=>b.style.display = (v==="short" && b.dataset.t!=="mkt") || (b.dataset.t==="stp" && v==="buy")? "none" : "");
   $("oGo").className="btn go "+(v==="buy"?"buy":"sell"); updateSum(); }
 function setType(v){ otype=v; document.querySelectorAll("#typeTabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===v));
   $("priceField").style.display=v==="mkt"?"none":""; $("priceLbl").textContent=v==="lmt"?"Limit fiyat":"Stop fiyatı (bu fiyata düşerse sat)";
   const q=Q[cur]; if (v!=="mkt" && q&&q.price && !$("oPx").value){ const t=tick(q.price); $("oPx").value = v==="stp"? roundTick(q.price*0.97) : side==="buy"? roundTick(q.price-t) : roundTick(q.price+t); }
   updateSum(); }
 function maxQty(){
-  const q=Q[cur]; const px = otype==="mkt"?(q&&q.price):(+$("oPx").value||(q&&q.price));
-  if (side==="buy"){ if (!px) return 0; return Math.max(0,Math.floor(buyingPower()/(px*(1+S.feeRate/1000)))); }
-  const p=S.pos[cur]; return p? Math.max(0,p.qty-lockedQty(cur)) : 0;
+  const q=Q[cur]; const px = otype==="mkt"?(q&&q.price):(+$("oPx").value||(q&&q.price)); const p=S.pos[cur];
+  if (side==="buy"){ if (p&&p.qty<0) return -p.qty; if (!px) return 0; return Math.max(0,fq(buyingPower()/(px*(1+S.feeRate/1000)),cur)); }
+  if (side==="short"){ if (p&&p.qty>0) return 0; if (!px) return 0; return Math.max(0,fq(buyingPower()/(px*(1+S.feeRate/1000)),cur)); }
+  return p&&p.qty>0? Math.max(0,p.qty-lockedQty(cur)) : 0;
 }
 function validate(){
-  const q=Q[cur]; const ses=session(); const qty=Math.floor(+$("oQty").value);
+  const q=Q[cur]; const ses=session(); const qty=fq(+$("oQty").value,cur);
   if (!q||!q.price) return "Bu hissenin fiyatı henüz gelmedi.";
-  if (!qty||qty<1) return "Adet gir.";
+  if (!qty||qty<=0) return "Adet gir.";
+  if (side==="short" && otype!=="mkt") return "Açığa satış sadece piyasa emriyle.";
+  if (side==="short" && S.pos[cur] && S.pos[cur].qty>0) return "Önce elindeki uzun pozisyonu sat.";
+  if (side==="sell" && S.pos[cur] && S.pos[cur].qty<0) return "Açık pozisyonu kapatmak için AL'a bas.";
+  if (side==="buy" && otype!=="mkt" && S.pos[cur] && S.pos[cur].qty<0) return "Açığa satışı piyasa emriyle kapat.";
   if (otype==="mkt" && !ses.open) return "Seans kapalı: piyasa emri verilemez. Limit emir bırakabilirsin.";
   if (otype!=="mkt"){ const px=+$("oPx").value; if (!px||px<=0) return "Fiyat gir.";
     if (Math.abs(roundTick(px)-px)>1e-6) return `Fiyat adımı ${fmt(tick(px))} ₺ olmalı (örn. ${fmt(roundTick(px))}).`;
-    if (q.prev && bandOf() && (px<q.prev*(1-bandOf())-1e-6 || px>q.prev*(1+bandOf())+1e-6)) return "Fiyat bugünkü taban–tavan aralığının dışında.";
+    if (q.prev && bandOf(cur) && (px<q.prev*(1-bandOf(cur))-1e-6 || px>q.prev*(1+bandOf(cur))+1e-6)) return "Fiyat bugünkü taban–tavan aralığının dışında.";
     if (otype==="lmt" && side==="buy" && px>=q.price) return "Limit alış fiyatı şu anki fiyatın altında olmalı (üstündeyse piyasa emri ver).";
     if (otype==="lmt" && side==="sell" && px<=q.price) return "Limit satış fiyatı şu anki fiyatın üstünde olmalı.";
     if (otype==="stp" && px>=q.price) return "Stop fiyatı şu anki fiyatın altında olmalı.";
   }
-  if (side==="sell"){ const fz=frozenMsg(cur); if (fz) return fz; }
-  if (qty>maxQty()) return side==="buy"?"Nakit yetmiyor.":"Elinde bu kadar serbest lot yok.";
+  if (side==="sell"||side==="short"){ const fz=frozenMsg(cur); if (fz) return fz; }
+  if (qty>maxQty()+1e-9) return side==="buy"? (S.pos[cur]&&S.pos[cur].qty<0?"Açık pozisyonundan fazlasını kapatamazsın.":"Nakit yetmiyor.") : side==="short"? "Teminatın yetmiyor (kaldıracı artırabilirsin)." : "Elinde bu kadar serbest lot yok.";
   return null;
 }
 function updateSum(){
-  if (!cur) return; const q=Q[cur]; const qty=Math.floor(+$("oQty").value)||0;
+  if (!cur) return; const q=Q[cur]; const qty=fq(+$("oQty").value,cur)||0;
   const px = otype==="mkt"?(q&&q.price||0):(+$("oPx").value||0);
   const amt=qty*px, fee=feeOf(amt);
   $("maxQty").textContent = `· en fazla ${fmt(maxQty(),0)}`;
-  $("oSum").innerHTML = `<div><span class="mut">Tutar</span><span>${tl(amt)}</span></div><div><span class="mut">Komisyon (binde ${fmt(S.feeRate,1)})</span><span>${tl(fee)}</span></div><div><b>${side==="buy"?"Toplam ödenecek":"Hesaba geçecek"}</b><b>${tl(side==="buy"?amt+fee:amt-fee)}</b></div>`;
+  $("oSum").innerHTML = `<div><span class="mut">Tutar</span><span>${tl(amt)}</span></div><div><span class="mut">Komisyon (binde ${fmt(S.feeRate,1)})</span><span>${tl(fee)}</span></div><div><b>${side==="buy"?"Toplam ödenecek":"Hesaba geçecek"}</b><b>${tl(side==="buy"?amt+fee:amt-fee)}</b></div>${side==="short"?`<div><span class="mut">Fiyat düşerse kazanırsın; ödünç ücreti günlük %0,05</span><span></span></div>`:""}`;
   $("oErr").textContent = qty? (validate()||"") : "";
-  $("oGo").textContent = (side==="buy"?"AL":"SAT") + (otype==="mkt"?"":otype==="lmt"?" · Limit emir bırak":" · Stop emir bırak");
+  const cov = side==="buy" && S.pos[cur] && S.pos[cur].qty<0;
+  $("oGo").textContent = side==="short"? "AÇIĞA SAT" : cov? "AL · açığı kapat" : (side==="buy"?"AL":"SAT") + (otype==="mkt"?"":otype==="lmt"?" · Limit emir bırak":" · Stop emir bırak");
 }
 function submit(){
   const err=validate(); if (err){ $("oErr").textContent=err; return; }
-  const q=Q[cur], qty=Math.floor(+$("oQty").value);
+  const q=Q[cur], qty=fq(+$("oQty").value,cur);
   if (otype==="mkt"){
     const r=execute(side,cur,qty,q.price,"market");
     if (!r.ok){ $("oErr").textContent=r.err; return; }
-    if (isSim()){ marketImpact(cur, side, qty*q.price); syncQG(); marginCheck(true); }
-    toast(`${side==="buy"?"🟢 Alındı":"🔴 Satıldı"}: ${cur} ${fmt(qty,0)} lot @ ${fmt(q.price)}`);
+    if (isSim()){ marketImpact(cur, side==="short"?"sell":side, qty*q.price); syncQG(); marginCheck(true); }
+    toast(`${side==="buy"?"🟢 Alındı":side==="short"?"🩳 Açığa satıldı":"🔴 Satıldı"}: ${cur} ${fqty(qty,cur)} ${unitOf(cur)} @ ${fmt(q.price)}`); sfx(side==="buy"?"buy":"sell");
+    if (isSim()) taskEvent("trade",{side,sym:cur,amt:qty*q.price});
   } else {
     const px=+$("oPx").value; let reserved=0;
     if (side==="buy"){ reserved = Math.round(qty*px*(1+S.feeRate/1000)*100)/100; S.cash -= reserved; }
     S.orders.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), sym:cur, side, type:otype, qty, px, reserved, t:Date.now()});
-    toast(`⏳ Emir bırakıldı: ${cur} ${fmt(qty,0)} lot @ ${fmt(px)}`);
+    toast(`⏳ Emir bırakıldı: ${cur} ${fqty(qty,cur)} @ ${fmt(px)}`); if (isSim()) taskEvent("order",{type:otype});
   }
   save(); snapshotEq(); renderAll(); $("oQty").value=""; updateSum(); renderDetail(false);
 }
@@ -1296,12 +1693,14 @@ function setMode(m){
   $("chooser").classList.remove("show"); closeDetail(); banner("");
   clearInterval(gameTimer); gameTimer=null;
   syncGodTab();
-  if (isSim()){ stopWatches(); if (SIM){ syncQG(); gameLoop(); } gameTimer=setInterval(gameLoop,1000); }
+  if (isSim()){ stopWatches(); if (SIM){ ensureAssets(); lifeEnsure(); syncQG(); gameLoop(); } gameTimer=setInterval(gameLoop,1000); }
   else { startWatches(); }
   renderAll(); if (view==="god") renderGod();
 }
+function lifeEnsure(){ if (!SIM) return; const L=life(), d=Math.floor((SIM.G+1)/DAY); if (L.tasks.day<d) genTasks(d); if (!L.season) initRivals(d); }
+function renderSnd(){ const el=$("sndBox"); if (!el) return; el.innerHTML=`<div class="chips"><button data-act="snd_on" style="${SND.on?"background:var(--acc);color:#111":""}">${SND.on?"🔊 Ses açık":"🔇 Ses kapalı"}</button><button data-act="snd_vib" style="${SND.vib?"background:var(--acc);color:#111":""}">${SND.vib?"📳 Titreşim açık":"Titreşim kapalı"}</button></div><div class="sub" style="margin-top:6px">iPhone Safari titreşimi desteklemiyor; ses çalışır.</div>`; }
 function syncGodTab(){ const on=isSim()&&premium()&&!(ACC.game.c&&ACC.game.c.hideGod); document.querySelector('nav button[data-v="god"]').style.display = on? "" : "none"; if (view==="god" && !on) goView("market"); }
-function slotEq(k){ const sim=slotSim(k), a= k===curSlot? ACC.game : SLOT[k].acct; if (!sim||!a) return 0; let v=a.cash-((a.f&&a.f.loan)||0); for (const o of a.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((sim.px[s]&&sim.px[s].p)||p.avg); const op=a.c&&a.c.op; if (op&&sim.px[op.sym]) v+=(op.cash+op.qty*sim.px[op.sym].p)*op.myCommit/op.initial; return v; }
+function slotEq(k){ const sim=slotSim(k), a= k===curSlot? ACC.game : SLOT[k].acct; if (!sim||!a) return 0; let v=a.cash-((a.f&&a.f.loan)||0)+luxValOf(a)+compValOf(a); for (const o of a.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((sim.px[s]&&sim.px[s].p)||p.avg); const op=a.c&&a.c.op; if (op&&sim.px[op.sym]) v+=(op.cash+op.qty*sim.px[op.sym].p)*op.myCommit/op.initial; return v; }
 function openChooser(){
   for (const [k,box,start] of [["game","gameCont","gameStart"]]){
     const sim=slotSim(k);
@@ -1313,7 +1712,7 @@ function openChooser(){
   $("chooser").classList.add("show");
   document.querySelectorAll("[data-cont]").forEach(b=>b.onclick=()=>setMode(b.dataset.cont));
 }
-function gameEq(){ let v=ACC.game.cash + myPoolShare() - ((ACC.game.f&&ACC.game.f.loan)||0); for (const o of ACC.game.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(ACC.game.pos)) v+=p.qty*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
+function gameEq(){ let v=ACC.game.cash + myPoolShare() - ((ACC.game.f&&ACC.game.f.loan)||0) + luxVal() + compVal(); for (const o of ACC.game.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(ACC.game.pos)) v+=p.qty*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
 function startGame(speed, slot="game"){
   if (isSim()&&SIM) save();
   useSlot(slot);
@@ -1330,12 +1729,14 @@ let view="market";
 function goView(v){ view=v; if (v==="god") setTimeout(renderGod,0); document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.v===v)); document.querySelectorAll("section").forEach(x=>x.classList.toggle("on",x.id==="v-"+v)); renderAll(); window.scrollTo(0,0); }
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>goView(b.dataset.v));
 let tap=null;
+document.addEventListener("pointerdown",()=>acInit(),{capture:true});
 document.addEventListener("pointerdown",e=>{ const a=e.target.closest("[data-act]"), o=e.target.closest("[data-open]"), c=e.target.closest("[data-cancel]"), r=(a||o||c)?null:e.target.closest(".row[data-s]");
   tap = (r||c||a||o)? {s:(o&&o.dataset.open)||(r&&r.dataset.s), c:c&&c.dataset.cancel, a:a&&a.dataset.act, arg:a&&a.dataset.arg, x:e.clientX, y:e.clientY} : null; });
 document.addEventListener("pointercancel",()=>{ tap=null; });
 document.addEventListener("pointerup",e=>{
   if (!tap) return; const t=tap; tap=null; if (Math.abs(e.clientX-t.x)>10||Math.abs(e.clientY-t.y)>10) return;
   if (t.c){ const o=S.orders.find(x=>x.id===t.c); if (o){ S.cash+=o.reserved||0; S.orders=S.orders.filter(x=>x!==o); save(); renderAll(); toast("Emir iptal edildi."); } return; }
+  if (t.a==="snd_on"||t.a==="snd_vib"){ if (t.a==="snd_on") SND.on=!SND.on; else SND.vib=!SND.vib; sndSave(); renderSnd(); if (SND.on) sfx("buy"); return; }
   if (t.a){ opAction(t.a, t.arg); return; }
   if (t.s) openDetail(t.s);
 });
@@ -1343,7 +1744,7 @@ $("sheetBg").onclick=closeDetail; $("dClose").onclick=closeDetail;
 document.querySelectorAll(".tabs.side button").forEach(b=>b.onclick=()=>setSide(b.dataset.s));
 document.querySelectorAll("#typeTabs button").forEach(b=>b.onclick=()=>{ $("oPx").value=""; setType(b.dataset.t); });
 document.querySelectorAll("#chartTabs button").forEach(b=>b.onclick=()=>{ ctab=b.dataset.c; document.querySelectorAll("#chartTabs button").forEach(x=>x.classList.toggle("on",x===b)); lastIntra=Date.now(); drawChart(); });
-document.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{ $("oQty").value=Math.floor(maxQty()*(+b.dataset.p)/100)||""; updateSum(); });
+document.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{ $("oQty").value=fq(maxQty()*(+b.dataset.p)/100,cur)||""; updateSum(); });
 $("oQty").oninput=updateSum; $("oPx").oninput=updateSum; $("oGo").onclick=submit;
 $("addBtn").onclick=()=>{ const s=$("addSym").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,""); if (!s) return; if (!watchList().includes(s)){ S.watch.push(s); save(); startWatches(); } $("addSym").value=""; renderAll(); toast(s+" listeye eklendi."); };
 $("feeIn").onchange=()=>{ S.feeRate=Math.max(0,Math.min(10,+$("feeIn").value||0)); save(); };
@@ -1353,6 +1754,7 @@ $("resetYes").onclick=()=>{ $("resetConf").classList.remove("show");
   if (isSim()){ openChooser(); toast("Aynı modda “baştan başla”yı seç."); return; }
   const w=S.watch, f=S.feeRate; ACC.real=fresh(); ACC.real.watch=w; ACC.real.feeRate=f; S=ACC.real; save(); renderAll(); toast("Demo hesap 100.000 ₺ ile sıfırlandı."); };
 $("bannerBtn").onclick=askPermission;
+$("evA").onclick=()=>evChoose("A"); $("evB").onclick=()=>evChoose("B"); $("evOk").onclick=evClose;
 $("modeBtn").onclick=openChooser;
 $("chClose").onclick=()=>$("chooser").classList.remove("show");
 $("goReal").onclick=()=>setMode("real");
@@ -1362,7 +1764,7 @@ setInterval(()=>{ if (mode==="real") renderHeader(); },30000);
 document.addEventListener("visibilitychange",()=>{ if (document.hidden && isSim() && SIM){ lastSimSave=Date.now(); save(); } });
 
 // ---------- boot ----------
-load();
+load(); sndLoad();
 let bootMode=mode; mode=null; if (bootMode==="god") bootMode="game";
 if (bootMode==="game" && !SLOT.game.sim) { openChooser(); }
 else if (bootMode) setMode(bootMode); else openChooser();

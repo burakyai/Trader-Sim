@@ -12,6 +12,9 @@ Canlı akan bir borsada trader kariyeri. Tek dosyalık bir web oyunu; iPhone'da 
 - **Kariyer:** kuryelikten fon yöneticiliğine işler, her gün maaş; batarsan maaşla geri dönersin
 - **Kaldıraç** (1x–10x, margin call) ve **banka kredisi** (faiz, icra, iflas)
 - **Tahtacılık:** 50 milyon ₺ varlıkta açılır; ekip kur (sermayedar, bot hesapçı, fenomen, avukat, içerden adam), ortak havuzla topla, yürüt, haber yay, dağıt; SPK radarına yakalanma
+- **Altın, gümüş, dolar, euro, Bitcoin, Ethereum, AnkaCoin** (bantsız, kripto küsuratlı alınır) ve **açığa satış**
+- **Hayat sekmesi:** günlük görevler ve seri bonusu · lüks eşyalar (ev, araba, saat, yat, jet; kira/bakım, haciz) · 5 rakip trader'la 20 günlük lig ve sezon ödülleri · kendi şirketini kur, büyüt, halka arz et (20 gün lock-up) · hikâye olayları (kuzen borç ister, içeriden bilgi, Telegram sinyali, vergi denetimi, iddia…)
+- Ses efektleri ve titreşim (Seçenekler'den aç/kapa)
 - Rütbeler (Çaylak → Borsa Efsanesi) ve rozetler
 
 ## 👑 Ultimate Trader paketi
