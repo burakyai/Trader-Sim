@@ -14,8 +14,8 @@ Canlı akan bir borsada trader kariyeri. Tek dosyalık bir web oyunu; iPhone'da 
 - **Tahtacılık:** 50 milyon ₺ varlıkta açılır; ekip kur (sermayedar, bot hesapçı, fenomen, avukat, içerden adam), ortak havuzla topla, yürüt, haber yay, dağıt; SPK radarına yakalanma
 - Rütbeler (Çaylak → Borsa Efsanesi) ve rozetler
 
-## 👑 Ultimate Trader (Tanrı Modu)
-Oyun Modu'nun ayrı kayıtlı bir kopyası; her şey senin elinde:
+## 👑 Ultimate Trader paketi
+Oyun Modu'nda **Seçenekler** sekmesinden satın alınan paket (fiyat şimdilik ₺149,99; ödeme altyapısı App Store aşamasında bağlanacak, şu an test için ücretsiz açılıyor). Alınca alttaki ⚡ Tanrı sekmesi açılır:
 - Para ekle / nakdi ayarla, borçları sil, tahtacılığı aç, tecrübe ekle, SPK'yı temizle
 - Zaman: duraklat, 1x / 4x / 16x hız, sonraki güne atla
 - Kurallar: taban/tavan (±%5–50 ya da limitsiz), azami kaldıraç (100x'e kadar), piyasa yönü (ayı → çılgın boğa), haber sıklığı, SPK ve margin call aç/kapa, tahtacılık eşiği, faizler, komisyon

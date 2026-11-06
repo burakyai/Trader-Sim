@@ -167,14 +167,15 @@ canvas{display:block;width:100%;height:210px}
   </section>
 
   <section id="v-hist">
-    <div id="histList"></div>
+    <div id="storeBox"></div>
     <div class="card">
-      <h3>Ayarlar</h3>
+      <h3>Seçenekler</h3>
       <div class="field" style="padding:0"><label>Komisyon oranı (binde)</label><input id="feeIn" type="number" step="0.1" min="0" max="10"></div>
       <div style="margin-top:12px"><button class="btn danger" id="resetBtn">Hesabı sıfırla (100.000 ₺)</button>
         <div class="confirm" id="resetConf"><button class="btn sell" id="resetYes">Evet, sıfırla</button><button class="btn" id="resetNo">Vazgeç</button></div></div>
       <p class="sub" style="margin-top:12px" id="disc"></p>
     </div>
+    <div class="card" style="padding:10px 0 0"><h3 style="padding:0 14px">İşlem geçmişi</h3><div id="histList"></div></div>
   </section>
 </div>
 
@@ -184,7 +185,7 @@ canvas{display:block;width:100%;height:210px}
   <button data-v="career"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg>Kariyer</button>
   <button data-v="god" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Tanrı</button>
   <button data-v="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Emirler</button>
-  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Geçmiş</button>
+  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Seçenekler</button>
 </div></nav>
 
 <div class="sheet-bg" id="sheetBg"></div>
@@ -226,15 +227,6 @@ canvas{display:block;width:100%;height:210px}
       <div class="mbtns" id="gameStart">
         <button class="btn pri" data-speed="fast">⚡ Hızlı başla<br><small>1 borsa günü = 8 dakika</small></button>
         <button class="btn" data-speed="rt">🕙 Gerçek saatle başla<br><small>10:00–18:00, hafta içi</small></button>
-      </div>
-    </div>
-    <div class="mcard" style="border-color:#f5b83d55">
-      <div class="mt">👑 Ultimate Trader</div>
-      <div class="md">Tanrı modu. Oyun Modu'nun aynısı ama her şey senin elinde: parayı, zamanı, taban/tavanı, kaldıracı, SPK'yı, şirketlerin fiyatını, oynaklığını ve trendini değiştir; yeni şirket halka arz et, kendi haberini yaz. Ayrı kayıt; normal oyununa dokunmaz.</div>
-      <div id="godCont"></div>
-      <div class="mbtns" id="godStart">
-        <button class="btn pri" data-speed="fast">👑 Hızlı başla<br><small>1 borsa günü = 8 dakika</small></button>
-        <button class="btn" data-speed="rt">🕙 Gerçek saatle<br><small>10:00–18:00, hafta içi</small></button>
       </div>
     </div>
     <div class="mcard">
@@ -322,7 +314,9 @@ function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){
 const fresh = () => ({v:1, cash:START, pos:{}, orders:[], trades:[], fees:0, feeRate:1, watch:[], eqHist:[], dayStart:{date:"",eq:START}});
 const ACC = {real: fresh(), game: fresh()};
 let mode = null;            // "real" | "game" | "god"
-function isSim(){ return mode==="game"||mode==="god"; }
+function isSim(){ return mode==="game"; }
+let PREMIUM = false; const PREMIUM_PRICE = "₺149,99";
+function premium(){ return PREMIUM; }
 let S = ACC.real;           // active account
 const QR = {}, QG = {};     // quotes per mode
 let Q = QR;
@@ -351,13 +345,13 @@ function save(){
   if (SIM){ lsSet(LSK(curSlot), {v:1, acct:ACC.game, sim:SIM}); }
   if (isSim()&&SIM) writeDoc(DOCK(curSlot), simDoc); else writeDoc("game", ()=>ACC.real);
 }
-function savePrefs(){ lsSet("arena_mode", mode); writeDoc("prefs", ()=>({mode})); }
+function savePrefs(){ lsSet("arena_mode", mode); lsSet("arena_premium", PREMIUM); writeDoc("prefs", ()=>({mode, premium:PREMIUM})); }
 function load(){
   const l = lsGet("arena_state")||lsGet("arena_real"); if (l&&l.v===1) ACC.real = Object.assign(fresh(), l);
   for (const k of ["game","god"]){ const g = lsGet(LSK(k)); if (g&&g.v===1&&g.sim){ SLOT[k]={acct:Object.assign(fresh(), g.acct), sim:fixSim(g.sim)}; } }
   ACC.game=SLOT.game.acct||fresh(); SIM=SLOT.game.sim; curSlot="game";
   const t = lsGet("arena_ticks"); if (t&&t.date===istNow().date) Object.assign(TR, t.d);
-  mode = lsGet("arena_mode");
+  mode = lsGet("arena_mode"); PREMIUM = lsGet("arena_premium")===true;
 }
 function fixSim(x){ if(!x) return x; if(!x.ticks) x.ticks={}; if(!x.co) x.co=JSON.parse(JSON.stringify(GS)); return x; }
 function saveTicks(){ lsSet("arena_ticks",{date:istNow().date, d:TR}); }
@@ -503,7 +497,7 @@ function gameLoop(){
   const c=gameClock(); const before=SIM.G;
   const fills=advanceTo(c.T); marginCheck(true);
   if (fills.length && (c.T-before)>180){
-    toast(`Sen yokken ${fills.length} emrin gerçekleşti — Geçmiş'e bak.`);
+    toast(`Sen yokken ${fills.length} emrin gerçekleşti — Seçenekler'deki geçmişe bak.`);
   }
   syncQG(); snapshotEq(); checkBroke(); renderAll(); if (cur) renderDetail(false);
   if (Date.now()-lastSimSave>60000 && SIM.G!==before){ lastSimSave=Date.now(); save(); }
@@ -601,6 +595,7 @@ function opAction(act, arg){
   const c=career(); if (!isSim()||!SIM) return;
   if (act==="lev"||act==="loan"||act==="repay"){ finAction(act,arg); return; }
   if (act.startsWith("g_")){ godAction(act,arg); return; }
+  if (act.startsWith("u_")){ storeAction(act); return; }
   const day=simDay(), open=gameClock().open, op=c.op;
   const needOpen=()=>{ if (!open){ toast("Seans kapalı; tahta seans içinde oynanır."); return false; } return true; };
   const frozen=()=> op && op.frozenUntil && day<op.frozenUntil;
@@ -828,7 +823,8 @@ const gnum = (id, def) => { let t=String(gv(id)).trim().replace(/\s|₺/g,""); i
   if (t.includes(",")) t=t.replace(/\./g,"").replace(",","."); else if ((t.match(/\./g)||[]).length>1) t=t.replace(/\./g,"");
   const v=parseFloat(t); return isFinite(v)? v : def; };
 function godAction(act, arg){
-  if (mode!=="god"||!SIM) return;
+  if (!isSim()||!SIM||!premium()) return;
+  if (!SIM.cfg) SIM.cfg=Object.assign({}, DEFCFG);
   const C=SIM.cfg, a=ACC.game, c=career(), f=fin();
   switch(act){
     case "g_add": a.cash+=+arg; toast(`💰 +${mtl(+arg)}`); break;
@@ -892,7 +888,8 @@ function toFast(){ const d=Math.floor(SIM.G/DAY), sec=SIM.G-d*DAY; SIM.speed="fa
 function chip(act,arg,label,on){ return `<button data-act="${act}" data-arg="${arg}" style="${on?"background:var(--acc);color:#111":""}">${label}</button>`; }
 function renderGod(){
   const el=$("godBox"); if (!el) return;
-  if (mode!=="god"||!SIM){ el.innerHTML=`<div class="empty">Tanrı paneli sadece 👑 Ultimate Trader modunda açılır.</div>`; return; }
+  if (!isSim()||!SIM||!premium()){ el.innerHTML=`<div class="empty">Tanrı paneli 👑 Ultimate Trader paketiyle açılır. Seçenekler sekmesinden alabilirsin.</div>`; return; }
+  if (!SIM.cfg) SIM.cfg=Object.assign({}, DEFCFG);
   const C=SIM.cfg, a=ACC.game, c=career(), fast=SIM.speed==="fast", m=fast?(SIM.mult==null?1:SIM.mult):null;
   let h=`<div class="card"><h3>💰 Para ve hesap</h3>
     <div class="chips">${chip("g_add",1e6,"+1 Mn")}${chip("g_add",1e8,"+100 Mn")}${chip("g_add",1e9,"+1 Mr")}${chip("g_add",1e10,"+10 Mr")}</div>
@@ -939,6 +936,30 @@ function renderGod(){
     <button class="btn pri" data-act="g_pub" style="width:100%;margin-top:10px">📣 Yayınla</button>
     <div class="sub" style="margin-top:8px">Etki taban/tavan sınırını aşamaz; sınırı kaldırırsan istediğin kadar oynatırsın.</div></div>`;
   el.innerHTML=h;
+}
+
+// ---------- store: Ultimate Trader paketi ----------
+function renderStore(){
+  const el=$("storeBox"); if (!el) return;
+  if (!isSim()){ el.innerHTML=""; el._h=""; return; }
+  const hide=ACC.game.c&&ACC.game.c.hideGod;
+  const h = premium()? `<div class="card" style="border-color:#f5b83d66"><h3>👑 Ultimate Trader <span class="pill" style="color:var(--acc)">Sahipsin ✓</span></h3>
+      <div class="sub">Tanrı paneli alttaki ⚡ Tanrı sekmesinde. Para, zaman, piyasa kuralları ve şirketler senin elinde.</div>
+      <div class="chips" style="margin-top:10px"><button data-act="u_toggle">${hide?"Tanrı sekmesini göster":"Tanrı sekmesini gizle"}</button></div></div>`
+    : `<div class="card" style="border-color:#f5b83d66;background:linear-gradient(160deg,#2a2210,#121821 55%)"><h3 style="color:var(--acc)">👑 Ultimate Trader paketi</h3>
+      <div style="font-size:14px;line-height:1.6">⚡ Tanrı paneli: istediğin kadar para, borç silme<br>⏱ Zamanı durdur, hızlandır, gün atla<br>📜 Taban/tavan, kaldıraç (100x), SPK, margin call, faizler<br>🏢 Şirketlerin fiyatını, trendini, oynaklığını değiştir; kendi şirketini halka arz et<br>📰 Kendi haberini yaz, piyasayı oynat</div>
+      <button class="btn pri" data-act="u_buy" style="width:100%;margin-top:12px;padding:13px;font-size:16px">Satın al · ${PREMIUM_PRICE}</button>
+      <div id="buyConf" style="display:${storeConfirm?"block":"none"};margin-top:10px" class="sub">Ödeme altyapısı henüz bağlı değil; App Store'a çıkınca burası gerçek satın alma olacak. Şimdilik test için ücretsiz açabilirsin.
+        <div class="mbtns" style="margin-top:8px"><button class="btn pri" data-act="u_unlock">Test için aç</button><button class="btn" data-act="u_cancel">Vazgeç</button></div></div></div>`;
+  if (el._h!==h){ el.innerHTML=h; el._h=h; }
+}
+let storeConfirm=false;
+function storeAction(act){
+  if (act==="u_buy"){ storeConfirm=true; }
+  else if (act==="u_cancel"){ storeConfirm=false; }
+  else if (act==="u_unlock"){ PREMIUM=true; storeConfirm=false; savePrefs(); toast("👑 Ultimate Trader açıldı! ⚡ Tanrı sekmesine bak."); }
+  else if (act==="u_toggle"){ const c=career(); c.hideGod=!c.hideGod; save(); }
+  syncGodTab(); renderStore(); renderHeader();
 }
 
 // ---------- valuation ----------
@@ -1087,14 +1108,14 @@ function snapshotEq(){
 // ---------- render ----------
 function renderHeader(){
   const ses=session(); $("sess").classList.toggle("open",ses.open); $("sessTxt").textContent=ses.txt;
-  $("modeBtn").textContent = mode==="god"? "👑 Ultimate ▾" : isSim()? `🎮 Oyun · ${SIM&&SIM.speed==="fast"?"Hızlı":"Gerçek saat"} ▾` : "📈 Gerçek Piyasa ▾";
+  $("modeBtn").textContent = isSim()? `${premium()?"👑":"🎮"} Oyun · ${SIM&&SIM.speed==="fast"?"Hızlı":"Gerçek saat"} ▾` : "📈 Gerçek Piyasa ▾";
   const eq=equity(), pnl=eq-START;
   const big=Math.abs(eq)>=1e7; $("eq").textContent= big? mtl(eq) : tl(eq); $("eq").style.fontSize = Math.abs(eq)>=1e6&&!big? "22px" : "";
   const pp=pnl/START*100; $("eqPnl").innerHTML=`<span class="${cls(pnl)}">${Math.abs(pnl)>=1e7?(pnl>=0?"+":"−")+mtl(Math.abs(pnl)):sgn(pnl)+" ₺"} (${Math.abs(pp)>=1e4? (pp>0?"+":"")+fmt(pp,0) : sgn(pp)}%)</span>`;
   const {r,nx}=rankOf(eq); $("rankName").textContent=r.n;
   if (nx){ $("rankNext").textContent=`${nx.n} için ${tl(nx.min-eq)}`; $("rankBar").style.width=Math.max(2,Math.min(100,(eq-r.min)/(nx.min-r.min)*100))+"%"; }
   else { $("rankNext").textContent="Zirvedesin"; $("rankBar").style.width="100%"; }
-  if (isSim()&&SIM){ $("fresh").textContent=`${dayLabel(Math.floor(SIM.G/DAY))} · ${gTime(SIM.G)} · ${mode==="god"?"👑 Ultimate Trader":"Oyun Modu"} — şirketler ve fiyatlar kurgusaldır`; }
+  if (isSim()&&SIM){ $("fresh").textContent=`${dayLabel(Math.floor(SIM.G/DAY))} · ${gTime(SIM.G)} · Oyun Modu — şirketler ve fiyatlar kurgusaldır`; }
   else if (lastData){ const mins=Math.round((Date.now()-lastData)/60000); $("fresh").textContent=`Son veri ${lastData.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"})} (${mins<1?"az önce":mins+" dk önce"}) · fiyatlar ~15 dk gecikmeli · dakikada bir yenilenir`; }
   else $("fresh").textContent= mcp? "Gerçek fiyatlar yükleniyor…" : "Gerçek veri bekleniyor…";
 }
@@ -1142,6 +1163,7 @@ function renderHist(){
   }).join("") : `<div class="empty">İşlem geçmişi boş.</div>`;
   $("feeIn").value = S.feeRate;
   $("resetBtn").textContent = isSim()? "Oyunu sıfırla (yeni piyasa, 100.000 ₺)" : "Demo hesabı sıfırla (100.000 ₺)";
+  renderStore();
   $("disc").textContent = isSim()? "Oyun Modu'ndaki şirketler, haberler ve fiyatlar tamamen kurgusaldır. Para sanaldır." : "Fiyatlar Borsa İstanbul'dan yaklaşık 15 dk gecikmeli gelir. Para tamamen sanaldır; bu bir oyundur, yatırım tavsiyesi değildir.";
 }
 function renderAll(){ renderHeader(); renderNews(); renderList(); if (view==="port"){ renderPort(); renderFin(); } if (view==="orders") renderOrders(); if (view==="hist") renderHist(); if (view==="career") renderCareer(); }
@@ -1269,19 +1291,19 @@ function submit(){
 // ---------- modes ----------
 function setMode(m){
   if (isSim()&&SIM&&m!==mode){ save(); }
-  if (m==="game"||m==="god") useSlot(m);
+  if (m==="game") useSlot("game");
   mode=m; S = isSim()? ACC.game : ACC.real; Q = isSim()?QG:QR; savePrefs();
   $("chooser").classList.remove("show"); closeDetail(); banner("");
   clearInterval(gameTimer); gameTimer=null;
-  document.querySelector('nav button[data-v="god"]').style.display = m==="god"? "" : "none";
-  if (view==="god" && m!=="god") goView("market");
+  syncGodTab();
   if (isSim()){ stopWatches(); if (SIM){ syncQG(); gameLoop(); } gameTimer=setInterval(gameLoop,1000); }
   else { startWatches(); }
   renderAll(); if (view==="god") renderGod();
 }
+function syncGodTab(){ const on=isSim()&&premium()&&!(ACC.game.c&&ACC.game.c.hideGod); document.querySelector('nav button[data-v="god"]').style.display = on? "" : "none"; if (view==="god" && !on) goView("market"); }
 function slotEq(k){ const sim=slotSim(k), a= k===curSlot? ACC.game : SLOT[k].acct; if (!sim||!a) return 0; let v=a.cash-((a.f&&a.f.loan)||0); for (const o of a.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((sim.px[s]&&sim.px[s].p)||p.avg); const op=a.c&&a.c.op; if (op&&sim.px[op.sym]) v+=(op.cash+op.qty*sim.px[op.sym].p)*op.myCommit/op.initial; return v; }
 function openChooser(){
-  for (const [k,box,start] of [["game","gameCont","gameStart"],["god","godCont","godStart"]]){
+  for (const [k,box,start] of [["game","gameCont","gameStart"]]){
     const sim=slotSim(k);
     $(box).innerHTML = sim? `<div class="mbtns" style="margin-bottom:8px"><button class="btn pri" data-cont="${k}">▶ Devam et · ${sim.speed==="fast"?"Hızlı":"Gerçek saat"} · ${mtl(slotEq(k))}</button></div><div class="sub" style="margin-bottom:8px">Ya da baştan, yeni bir piyasayla başla:</div>` : "";
     $(start).querySelectorAll("button").forEach(b=>b.classList.toggle("pri", !sim && b.dataset.speed==="fast"));
@@ -1297,11 +1319,10 @@ function startGame(speed, slot="game"){
   useSlot(slot);
   const f=ACC.game.feeRate||1; ACC.game=fresh(); ACC.game.feeRate=f;
   for (const k in QG) delete QG[k];
-  initSim(speed); if (slot==="god") SIM.cfg=Object.assign({}, DEFCFG);
+  initSim(speed);
   SLOT[slot]={acct:ACC.game, sim:SIM};
   mode=null; setMode(slot); save();
-  if (slot==="god"){ toast("👑 Ultimate Trader: alttaki ⚡ Tanrı sekmesinden her şeyi değiştirebilirsin."); goView("god"); }
-  else toast(speed==="fast"? "⚡ Hızlı mod: bir borsa günü 8 dakika sürer." : "🕙 Gerçek saat: piyasa hafta içi 10:00–18:00 açık.");
+  toast(speed==="fast"? "⚡ Hızlı mod: bir borsa günü 8 dakika sürer." : "🕙 Gerçek saat: piyasa hafta içi 10:00–18:00 açık.");
 }
 
 // ---------- events ----------
@@ -1336,15 +1357,14 @@ $("modeBtn").onclick=openChooser;
 $("chClose").onclick=()=>$("chooser").classList.remove("show");
 $("goReal").onclick=()=>setMode("real");
 $("gameStart").querySelectorAll("button").forEach(b=>b.onclick=()=>startGame(b.dataset.speed,"game"));
-$("godStart").querySelectorAll("button").forEach(b=>b.onclick=()=>startGame(b.dataset.speed,"god"));
 window.addEventListener("resize",()=>{ if (cur) drawChart(); if (view==="port") drawEq(); });
 setInterval(()=>{ if (mode==="real") renderHeader(); },30000);
 document.addEventListener("visibilitychange",()=>{ if (document.hidden && isSim() && SIM){ lastSimSave=Date.now(); save(); } });
 
 // ---------- boot ----------
 load();
-const bootMode=mode; mode=null;
-if ((bootMode==="game"||bootMode==="god") && !SLOT[bootMode].sim) { openChooser(); }
+let bootMode=mode; mode=null; if (bootMode==="god") bootMode="game";
+if (bootMode==="game" && !SLOT.game.sim) { openChooser(); }
 else if (bootMode) setMode(bootMode); else openChooser();
 (async()=>{
   const c = window.claude;
@@ -1359,11 +1379,12 @@ else if (bootMode) setMode(bootMode); else openChooser();
       try{
         const [rs, gs, gd, ps] = await Promise.all([db.doc(base+"game").get(), db.doc(base+"sim").get(), db.doc(base+"god").get(), db.doc(base+"prefs").get()]);
         if (rs.exists){ const v=rs.data(); if (v&&v.v===1) ACC.real=Object.assign(fresh(), JSON.parse(JSON.stringify(v))); }
-        for (const [k,snap] of [["game",gs],["god",gd]]){ if (!snap.exists) continue; const v=JSON.parse(JSON.stringify(snap.data()));
+        if (ps.exists && (ps.data()||{}).premium) { PREMIUM=true; lsSet("arena_premium",true); syncGodTab(); }
+        for (const [k,snap] of [["game",gs]]){ if (!snap.exists) continue; const v=JSON.parse(JSON.stringify(snap.data()));
           if (!(v&&v.v===1&&v.sim)) continue; const loc=slotSim(k); if (loc && v.sim.G<loc.G) continue;
           const ticks=loc&&loc.ticks; const sim=fixSim(v.sim); sim.ticks=ticks||{}; const acct=Object.assign(fresh(), v.acct);
           if (k===curSlot){ ACC.game=acct; SIM=sim; } else SLOT[k]={acct, sim}; }
-        let pm = ps.exists? (ps.data()||{}).mode : null;
+        let pm = ps.exists? (ps.data()||{}).mode : null; if (pm==="god") pm="game";
         if (!mode && pm && (pm==="real"||slotSim(pm))) { setMode(pm); }
         else if (mode){ S = isSim()? ACC.game : ACC.real; if (isSim()&&SIM) syncQG(); }
       }catch(e){}
