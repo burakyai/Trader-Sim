@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Trader Sim</title>
+<meta name="theme-color" content="#0b0f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trader Sim">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#0b0f14;--panel:#121821;--panel2:#18202b;--line:#232d3a;--text:#e8edf3;--mut:#8a97a8;
+  --up:#1fbf75;--down:#ef4f5a;--acc:#f5b83d;--blue:#4c8dff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.35 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input{font:inherit;color:var(--text)}
+.app{max-width:560px;margin:0 auto;min-height:100vh;padding-bottom:78px}
+header{position:sticky;top:0;z-index:5;background:linear-gradient(#0b0f14,#0b0f14ee);padding:calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));border-bottom:1px solid var(--line)}
+.top{display:flex;justify-content:space-between;align-items:center}
+.brand{white-space:nowrap;font-weight:800;letter-spacing:.3px;font-size:17px}
+.brand span{color:var(--acc)}
+.sess{font-size:12px;padding:4px 8px;border-radius:99px;background:var(--panel2);color:var(--mut);display:flex;gap:6px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--mut)}
+.sess.open .dot{background:var(--up);box-shadow:0 0 0 0 var(--up);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 #1fbf7588}100%{box-shadow:0 0 0 8px #1fbf7500}}
+.equity{margin-top:10px;display:flex;justify-content:space-between;align-items:flex-end}
+.equity .big{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.equity .lbl{font-size:12px;color:var(--mut)}
+.pnl{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.up{color:var(--up)}.down{color:var(--down)}.mut{color:var(--mut)}
+.rank{margin-top:8px;font-size:12px;color:var(--mut)}
+.bar{height:5px;background:var(--panel2);border-radius:9px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),#ffd77a);width:0}
+.banner{margin:10px 16px 0;padding:10px 12px;border-radius:10px;background:#2a1f0c;color:#f7d08a;font-size:13px;display:none}
+.banner.show{display:block}
+.banner button{margin-top:8px;background:var(--acc);color:#111;padding:6px 12px;border-radius:8px;font-weight:700}
+.fresh{padding:8px 16px 0;font-size:12px;color:var(--mut)}
+section{display:none;padding:8px 0}
+section.on{display:block}
+.row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.row:active{background:var(--panel)}
+.sym{font-weight:700}
+.sub{font-size:12px;color:var(--mut)}
+.px{text-align:right;font-variant-numeric:tabular-nums}
+.px b{display:block;font-size:16px;transition:background .6s;border-radius:4px;padding:0 3px}
+.chg{display:inline-block;min-width:64px;text-align:center;font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;margin-top:3px}
+.chg.up{background:#1fbf7522}.chg.down{background:#ef4f5a22}.chg.flat{background:var(--panel2);color:var(--mut)}
+.flash-up{background:#1fbf7544!important}.flash-down{background:#ef4f5a44!important}
+.add{display:flex;gap:8px;padding:12px 16px}
+.add input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-transform:uppercase}
+.btn{background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:10px;font-weight:700}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#111}
+.btn.buy{background:var(--up);border-color:var(--up);color:#04140c}
+.btn.sell{background:var(--down);border-color:var(--down);color:#fff}
+.card{margin:10px 16px;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+.card h3{margin:0 0 8px;font-size:14px;color:var(--mut);font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv .k{font-size:12px;color:var(--mut)}.kv .v{font-weight:700;font-variant-numeric:tabular-nums}
+.empty{padding:30px 16px;text-align:center;color:var(--mut)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#0d131bf2;border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav .in{display:flex;max-width:560px;width:100%}
+nav button{flex:1;padding:10px 0 12px;font-size:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.on{color:var(--acc)}
+nav svg{width:22px;height:22px}
+.sheet-bg{position:fixed;inset:0;background:#000a;z-index:10;display:none}
+.sheet-bg.show{display:block}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-width:560px;margin:0 auto;background:var(--panel);border-radius:18px 18px 0 0;border-top:1px solid var(--line);transform:translateY(105%);transition:transform .25s ease;max-height:92vh;overflow:auto;padding-bottom:calc(16px + env(safe-area-inset-bottom));visibility:hidden}
+.sheet.show{transform:none;visibility:visible}
+.grab{width:40px;height:4px;background:var(--line);border-radius:4px;margin:8px auto}
+.sh-head{display:flex;justify-content:space-between;align-items:flex-start;padding:4px 16px 8px}
+.sh-head .big{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums}
+.x{font-size:22px;color:var(--mut);padding:0 4px}
+.tabs{display:flex;gap:6px;padding:0 16px}
+.tabs button{flex:1;padding:8px;border-radius:9px;background:var(--panel2);font-size:13px;color:var(--mut);font-weight:600}
+.tabs button.on{background:var(--line);color:var(--text)}
+.tabs.side button.on.b{background:var(--up);color:#04140c}
+.tabs.side button.on.s{background:var(--down);color:#fff}
+canvas{display:block;width:100%;height:210px}
+.chartwrap{padding:8px 8px 0;position:relative}
+.chartnote{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px;pointer-events:none}
+.field{padding:8px 16px}
+.field label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px}
+.field input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:17px;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:6px;margin-top:6px}
+.chips button{flex:1;padding:6px;border-radius:8px;background:var(--panel2);font-size:12px;color:var(--mut)}
+.sum{margin:6px 16px;padding:10px 12px;background:var(--bg);border-radius:10px;font-size:13px}
+.sum div{display:flex;justify-content:space-between;padding:2px 0}
+.err{color:var(--down);font-size:13px;padding:0 16px;min-height:18px}
+.go{display:block;width:calc(100% - 32px);margin:8px 16px 0;padding:14px;font-size:16px}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translate(-50%,-250%);transition:transform .3s;background:var(--panel2);border:1px solid var(--line);padding:10px 14px;border-radius:12px;z-index:20;font-size:14px;max-width:92vw;box-shadow:0 8px 30px #0008}
+.toast.show{transform:translate(-50%,0)}
+.pill{font-size:11px;padding:2px 7px;border-radius:99px;background:var(--panel2);color:var(--mut);margin-left:6px;font-weight:600}
+.danger{color:var(--down)}
+.confirm{display:none;margin-top:10px}
+.confirm.show{display:flex;gap:8px}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badge{font-size:12px;padding:6px 9px;border-radius:9px;background:var(--panel2);color:var(--mut)}
+.badge.got{background:#f5b83d22;color:var(--acc)}
+.modebtn{font-size:11px;font-weight:700;padding:4px 8px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);color:var(--acc)}
+.chooser{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto;display:none}
+.chooser.show{display:block}
+.ch-in{max-width:520px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.mt{font-size:18px;font-weight:800;margin-bottom:6px}
+.md{font-size:14px;color:var(--mut);margin-bottom:12px}
+.mbtns{display:flex;gap:8px}
+.mbtns .btn{flex:1;line-height:1.25}
+.mbtns small{font-weight:500;font-size:11px;opacity:.8}
+.newsbox{margin:8px 16px 4px;padding:10px 12px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.newsbox .h{font-size:12px;color:var(--mut);margin-bottom:4px;display:flex;justify-content:space-between}
+.ni{font-size:13px;padding:4px 0;border-top:1px solid var(--line)}
+.ni:first-of-type{border-top:0}
+.ni .tm{color:var(--mut);font-size:11px;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="top">
+      <div class="brand">Trader <span>Sim</span></div>
+      <button class="modebtn" id="modeBtn">—</button>
+    </div>
+    <div style="margin-top:6px;display:flex"><div class="sess" id="sess"><i class="dot"></i><span id="sessTxt">—</span></div></div>
+    <div class="equity">
+      <div><div class="lbl">Toplam varlık</div><div class="big" id="eq">100.000,00 ₺</div></div>
+      <div style="text-align:right"><div class="lbl">Toplam K/Z</div><div class="pnl" id="eqPnl">0,00 ₺</div></div>
+    </div>
+    <div class="rank"><span id="rankName">Çaylak</span> · <span id="rankNext"></span><div class="bar"><i id="rankBar"></i></div></div>
+  </header>
+  <div class="banner" id="banner"><div id="bannerTxt"></div><button id="bannerBtn" style="display:none">İzin ver ve bağlan</button></div>
+  <div class="fresh" id="fresh">Veriler yükleniyor…</div>
+
+  <section id="v-market" class="on">
+    <div id="news"></div>
+    <div id="list"></div>
+    <div class="add" id="addRow"><input id="addSym" placeholder="Hisse kodu ekle (örn. KCHOL)" maxlength="8"><button class="btn" id="addBtn">Ekle</button></div>
+  </section>
+
+  <section id="v-port">
+    <div class="card">
+      <h3>Hesap</h3>
+      <div class="grid2">
+        <div class="kv"><div class="k">Nakit</div><div class="v" id="pCash">—</div></div>
+        <div class="kv"><div class="k">Hisse değeri</div><div class="v" id="pStock">—</div></div>
+        <div class="kv"><div class="k">Bugünkü K/Z</div><div class="v" id="pDay">—</div></div>
+        <div class="kv"><div class="k">Ödenen komisyon</div><div class="v" id="pFee">—</div></div>
+      </div>
+    </div>
+    <div class="card" style="padding:10px 6px 6px"><h3 style="padding:0 8px">Varlık geçmişi</h3><canvas id="eqChart" style="height:120px"></canvas></div>
+    <div id="finBox"></div>
+    <div id="posList"></div>
+    <div class="card"><h3>Rozetler</h3><div class="badges" id="badges"></div></div>
+  </section>
+
+  <section id="v-career"><div id="careerBox"></div></section>
+
+  <section id="v-orders">
+    <div id="ordList"></div>
+  </section>
+
+  <section id="v-hist">
+    <div id="histList"></div>
+    <div class="card">
+      <h3>Ayarlar</h3>
+      <div class="field" style="padding:0"><label>Komisyon oranı (binde)</label><input id="feeIn" type="number" step="0.1" min="0" max="10"></div>
+      <div style="margin-top:12px"><button class="btn danger" id="resetBtn">Hesabı sıfırla (100.000 ₺)</button>
+        <div class="confirm" id="resetConf"><button class="btn sell" id="resetYes">Evet, sıfırla</button><button class="btn" id="resetNo">Vazgeç</button></div></div>
+      <p class="sub" style="margin-top:12px" id="disc"></p>
+    </div>
+  </section>
+</div>
+
+<nav><div class="in">
+  <button data-v="market" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Piyasa</button>
+  <button data-v="port"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6V4h8v2"/></svg>Portföy</button>
+  <button data-v="career"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6 .9-4.5 4.3 1 6.3L12 16.6 6.5 19.5l1-6.3L3 8.9 9 8z"/></svg>Kariyer</button>
+  <button data-v="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Emirler</button>
+  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Geçmiş</button>
+</div></nav>
+
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <div class="sh-head">
+    <div><div class="sym" id="dSym" style="font-size:18px">—</div><div class="big" id="dPx">—</div><div id="dChg" class="pnl"></div></div>
+    <button class="x" id="dClose">✕</button>
+  </div>
+  <div class="tabs" id="chartTabs"><button data-c="intra" class="on">Gün içi</button><button data-c="3mo">3 Ay</button><button data-c="1y">1 Yıl</button></div>
+  <div class="chartwrap"><canvas id="chart"></canvas><div class="chartnote" id="chartNote"></div></div>
+  <div class="sub" style="padding:4px 16px" id="dInfo"></div>
+  <div class="tabs side" style="margin-top:10px"><button class="b on" data-s="buy">AL</button><button class="s" data-s="sell">SAT</button></div>
+  <div class="tabs" id="typeTabs" style="margin-top:8px"><button data-t="mkt" class="on">Piyasa</button><button data-t="lmt">Limit</button><button data-t="stp">Stop</button></div>
+  <div class="field" id="priceField" style="display:none"><label id="priceLbl">Limit fiyat</label><input id="oPx" type="number" inputmode="decimal" step="0.01"></div>
+  <div class="field"><label>Adet <span id="maxQty" class="mut"></span></label><input id="oQty" type="number" inputmode="numeric" min="1" step="1">
+    <div class="chips"><button data-p="25">%25</button><button data-p="50">%50</button><button data-p="75">%75</button><button data-p="100">Tümü</button></div></div>
+  <div class="sum" id="oSum"></div>
+  <div class="err" id="oErr"></div>
+  <button class="btn buy go" id="oGo">AL</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="chooser" id="broke" style="background:#000c">
+  <div class="ch-in" style="margin-top:22vh"><div class="mcard" style="text-align:center">
+    <div style="font-size:46px">💸</div><div class="mt">Battın!</div><div class="md" id="brokeTxt"></div>
+    <div class="mbtns"><button class="btn pri" data-act="gojob">💼 Kariyer'e git</button><button class="btn" id="brokeClose">Kapat</button></div>
+  </div></div>
+</div>
+
+<div class="chooser" id="chooser">
+  <div class="ch-in">
+    <div class="brand" style="font-size:26px;text-align:center;margin-top:8px">Trader <span>Sim</span></div>
+    <p class="sub" style="text-align:center;margin:6px 0 18px">Nasıl oynamak istersin? Her modun kendi 100.000 ₺'lik ayrı cüzdanı var, istediğin an geçiş yapabilirsin.</p>
+    <div class="mcard">
+      <div class="mt">🎮 Oyun Modu</div>
+      <div class="md">10 kurgusal şirket, kendi kendine canlı akan bir piyasa. Bilanço, ihale, faiz kararı, SPK incelemesi gibi haberler fiyatları sarsar. Uygulama kapalıyken de piyasa işler, emirlerin gerçekleşir.</div>
+      <div id="gameCont"></div>
+      <div class="mbtns" id="gameStart">
+        <button class="btn pri" data-speed="fast">⚡ Hızlı başla<br><small>1 borsa günü = 8 dakika</small></button>
+        <button class="btn" data-speed="rt">🕙 Gerçek saatle başla<br><small>10:00–18:00, hafta içi</small></button>
+      </div>
+    </div>
+    <div class="mcard">
+      <div class="mt">📈 Gerçek Piyasa · Demo Hesap</div>
+      <div class="md">Gerçek BIST hisseleri, ~15 dk gecikmeli gerçek fiyatlar. Sanal parayla, gerçek piyasaya karşı kendini dene.</div>
+      <div class="mbtns"><button class="btn pri" id="goReal">Gerçek piyasaya gir</button></div>
+    </div>
+    <button class="btn" id="chClose" style="width:100%;margin-top:4px;display:none">Kapat</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const START = 100000;
+const SERVER = "borsa";
+const DAY = 28800; // one session = 8h of session-seconds
+const BASE = ["THYAO","GARAN","ASELS","AKBNK","BIMAS","EREGL","KCHOL","SISE","TUPRS","FROTO","YKBNK","PGSUS","SAHOL","TCELL","ISCTR","TOASO","ENKAI","MGROS","ECILC","PAHOL"];
+const GS = [
+  {s:"KRTAL", n:"Kartal Havayolları",   p:285,  v:.026, b:1.1, sec:"ulasim", L:1200000000},
+  {s:"BGZBN", n:"Boğaz Bankası",         p:138,  v:.022, b:1.3, sec:"banka", L:1500000000},
+  {s:"DMRCL", n:"Demir Çelik Sanayi",    p:42.5, v:.024, b:1.0, sec:"sanayi", L:300000000},
+  {s:"YLDZT", n:"Yıldız Teknoloji",      p:96.4, v:.034, b:1.2, sec:"teknoloji", L:400000000},
+  {s:"MRMEN", n:"Marmara Enerji",        p:18.7, v:.028, b:0.9, sec:"enerji", L:200000000},
+  {s:"EGEGD", n:"Ege Gıda",              p:512,  v:.016, b:0.6, sec:"gida", L:600000000},
+  {s:"TRSVN", n:"Toros Savunma",         p:214,  v:.030, b:0.8, sec:"savunma", L:700000000},
+  {s:"ANKGY", n:"Ankara GYO",            p:9.84, v:.032, b:1.2, sec:"gyo", L:150000000},
+  {s:"KPDOT", n:"Kapadokya Otomotiv",    p:1045, v:.019, b:1.0, sec:"otomotiv", L:900000000},
+  {s:"ZGRMD", n:"Zigana Madencilik",     p:64.2, v:.031, b:0.9, sec:"madencilik", L:250000000},
+];
+const GMAP = Object.fromEntries(GS.map(g=>[g.s,g]));
+const NEWS_POS = ["{n} rekor bilanço açıkladı","{n} %100 bedelsiz sermaye artırımı kararı aldı","{n} büyük bir ihale kazandı","Analistler {n} için hedef fiyatı yükseltti","{n} yurt dışından dev sipariş aldı","{n} yüklü temettü dağıtacağını açıkladı","{n} geri alım programı başlattı"];
+const NEWS_NEG = ["{n} beklentilerin altında bilanço açıkladı","{n} hakkında SPK incelemesi başlatıldı","{n} tesisinde arıza: üretim durdu","{n} büyük ortağı blok pay sattı","Analistler {n} için 'sat' tavsiyesi verdi","{n} kritik ihaleyi kaybetti","{n} bedelli sermaye artırımı açıkladı"];
+const NEWS_MKT = [
+  {t:"TCMB sürpriz faiz indirimi yaptı", base:.018, sec:{banka:2,gyo:2.2,otomotiv:1.4}},
+  {t:"TCMB faizi beklenmedik şekilde artırdı", base:-.02, sec:{banka:1.8,gyo:2,otomotiv:1.4}},
+  {t:"Yabancı yatırımcı girişi hızlandı", base:.015, sec:{}},
+  {t:"Küresel piyasalarda sert satış dalgası", base:-.018, sec:{}},
+  {t:"Petrol fiyatları sert yükseldi", base:0, sec:{ulasim:-2.2,enerji:2}},
+  {t:"Altın ve emtia fiyatları rekor kırdı", base:.004, sec:{madencilik:3,sanayi:1}},
+  {t:"Enflasyon beklentinin altında geldi", base:.012, sec:{gida:1.5,banka:1.3}},
+];
+const RANKS = [
+  {n:"Zarar Çukuru", min:0},{n:"Çaylak", min:90000},{n:"Stajyer", min:110000},{n:"Trader", min:150000},
+  {n:"Kıdemli Trader", min:250000},{n:"Fon Yöneticisi", min:500000},{n:"Balina 🐋", min:1000000},
+  {n:"Büyük Balina", min:5000000},{n:"Piyasa Kurdu 🐺", min:20000000},{n:"Tahta Babası 👑", min:50000000},{n:"Borsa Efsanesi", min:250000000}
+];
+const BADGES = [
+  {id:"first", n:"İlk işlem", t:s=>s.trades.length>0},
+  {id:"win", n:"İlk kârlı satış", t:s=>s.trades.some(x=>x.side==="sell"&&x.pnl>0)},
+  {id:"ten", n:"10 işlem", t:s=>s.trades.length>=10},
+  {id:"div", n:"5 farklı hisse", t:s=>Object.keys(s.pos).length>=5},
+  {id:"stop", n:"Stopla korundu", t:s=>s.trades.some(x=>x.via==="stop")},
+  {id:"p10", n:"%10 getiri", t:(s,eq)=>eq>=START*1.1},
+  {id:"p50", n:"%50 getiri", t:(s,eq)=>eq>=START*1.5},
+  {id:"dbl", n:"Parayı ikiye katla", t:(s,eq)=>eq>=START*2},
+];
+
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const fmt = (n,d=2) => (isFinite(n)?n:0).toLocaleString("tr-TR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const tl = n => fmt(n)+" ₺";
+const sgn = n => (n>0?"+":"")+fmt(n);
+const cls = n => n>0?"up":n<0?"down":"mut";
+const esc = t => String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function istNow(){
+  const p = new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Istanbul",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",weekday:"short",hour12:false}).formatToParts(new Date());
+  const g = t => (p.find(x=>x.type===t)||{}).value;
+  return {date:`${g("year")}-${g("month")}-${g("day")}`, h:+g("hour")%24, m:+g("minute"), s:+g("second"), wd:g("weekday")};
+}
+function fmtDur(m){ const h=Math.floor(m/60), mm=Math.round(m%60); return (h?h+" sa ":"")+mm+" dk"; }
+function tick(p){ return p<20?.01:p<50?.02:p<100?.05:p<250?.1:p<500?.25:p<1000?.5:p<2500?1:2.5; }
+function roundTick(p){ const t=tick(p); return Math.round(Math.round(p/t)*t*100)/100; }
+function toast(msg){ const t=$("toast"); t.innerHTML=msg; t.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),3600); }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+// ---------- state ----------
+const fresh = () => ({v:1, cash:START, pos:{}, orders:[], trades:[], fees:0, feeRate:1, watch:[], eqHist:[], dayStart:{date:"",eq:START}});
+const ACC = {real: fresh(), game: fresh()};
+let mode = null;            // "real" | "game"
+let S = ACC.real;           // active account
+const QR = {}, QG = {};     // quotes per mode
+let Q = QR;
+const TR = {};              // real intraday ticks
+let SIM = null;             // game market
+let db=null, uid=null;
+
+const saver = {};
+async function writeDoc(name, getter){
+  const st = saver[name]||(saver[name]={busy:false, again:false});
+  if (!db||!uid) return;
+  if (st.busy){ st.again=true; return; }
+  st.busy=true;
+  try{ await db.doc("data/users/"+uid+"/"+name).set(JSON.parse(JSON.stringify(getter()))); }
+  catch(e){ if (e&&e.code==="unavailable") setTimeout(()=>writeDoc(name,getter), 1500+Math.random()*1000); }
+  st.busy=false;
+  if (st.again){ st.again=false; writeDoc(name,getter); }
+}
+const simDoc = () => { const c=Object.assign({},SIM); delete c.ticks; return {v:1, acct:ACC.game, sim:c}; };
+function save(){
+  lsSet("arena_real", ACC.real);
+  if (SIM){ lsSet("arena_sim", {v:1, acct:ACC.game, sim:SIM}); }
+  if (mode==="game"&&SIM) writeDoc("sim", simDoc); else writeDoc("game", ()=>ACC.real);
+}
+function savePrefs(){ lsSet("arena_mode", mode); writeDoc("prefs", ()=>({mode})); }
+function load(){
+  const l = lsGet("arena_state")||lsGet("arena_real"); if (l&&l.v===1) ACC.real = Object.assign(fresh(), l);
+  const g = lsGet("arena_sim"); if (g&&g.v===1&&g.sim){ ACC.game=Object.assign(fresh(), g.acct); SIM=g.sim; if(!SIM.ticks) SIM.ticks={}; }
+  const t = lsGet("arena_ticks"); if (t&&t.date===istNow().date) Object.assign(TR, t.d);
+  mode = lsGet("arena_mode");
+}
+function saveTicks(){ lsSet("arena_ticks",{date:istNow().date, d:TR}); }
+
+// ---------- clock (mode aware) ----------
+const EPOCH = Date.UTC(2026,10,2); // Monday 2 Nov 2026
+function rtClock(){
+  const n=istNow(); const [y,mo,d]=n.date.split("-").map(Number);
+  const dd=Math.round((Date.UTC(y,mo-1,d)-EPOCH)/864e5); const weeks=Math.floor(dd/7), rem=dd-weeks*7;
+  const mins=n.h*60+n.m+n.s/60;
+  if (rem>=5) return {open:false, T:(weeks*5+5)*DAY-1, txt:"Hafta sonu · kapalı"};
+  const idx=weeks*5+rem;
+  if (mins<600) return {open:false, T:idx*DAY-1, txt:"Açılışa "+fmtDur(600-mins)};
+  if (mins>=1080) return {open:false, T:(idx+1)*DAY-1, txt:"Seans kapandı"};
+  return {open:true, T:idx*DAY+Math.floor((mins-600)*60), txt:"Seans açık · "+fmtDur(1080-mins)+" kaldı"};
+}
+function fastClock(){
+  const e=Math.max(0,(Date.now()-SIM.start)/1000), cyc=540, day=Math.floor(e/cyc), r=e-day*cyc;
+  if (r<480) return {open:true, T:day*DAY+Math.floor(r*60), txt:`Gün ${day+1} · kapanışa ${Math.ceil((480-r)/60)} dk`};
+  return {open:false, T:(day+1)*DAY-1, txt:`Gece · yeni gün ${Math.ceil(540-r)} sn sonra`};
+}
+function gameClock(){ return SIM.speed==="fast"?fastClock():rtClock(); }
+function session(){
+  if (mode==="game"&&SIM) return gameClock();
+  const n=istNow(); const mins=n.h*60+n.m;
+  if (n.wd==="Sat"||n.wd==="Sun") return {open:false, txt:"Hafta sonu · kapalı"};
+  if (mins<600) return {open:false, txt:"Açılışa "+fmtDur(600-mins)};
+  if (mins>=1080) return {open:false, txt:"Seans kapandı"};
+  return {open:true, txt:"Seans açık · "+fmtDur(1080-mins)+" kaldı"};
+}
+function dayLabel(day){
+  if (SIM&&SIM.speed==="fast") return "Gün "+(day+1);
+  const weeks=Math.floor(day/5), rem=day-weeks*5; const d=new Date(EPOCH+(weeks*7+rem)*864e5);
+  return d.toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit",timeZone:"UTC"});
+}
+function gTime(G){ const sec=((G%DAY)+DAY)%DAY; const m=600+Math.floor(sec/60); return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0"); }
+function dayKey(){ return mode==="game"&&SIM? "G"+Math.floor((SIM.G+1)/DAY) : istNow().date; }
+
+// ---------- game market engine ----------
+function rnd(){ let t=(SIM.r=(SIM.r+0x6D2B79F5)|0); t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }
+function gauss(){ let u=0; while(!u) u=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*rnd()); }
+function initSim(speed){
+  SIM = {v:1, speed, start:Date.now(), r:(Date.now()%2147483647)|0, G:0, mkt:0, px:{}, bars:{}, news:[], sched:[], ticks:{}};
+  const c = gameClock();
+  const startDay = c.open? Math.floor(c.T/DAY) : Math.floor((c.T+1)/DAY);
+  for (const g of GS){
+    let x = g.p*(0.8+0.4*rnd()); const bars=[];
+    for (let d=startDay-160; d<startDay; d++){
+      const prev=x; x*=Math.exp(gauss()*g.v*0.4); const o=roundTick(x); let h=o,l=o;
+      const mu=gauss()*g.v*0.25;
+      for (let k=0;k<16;k++){ x*=Math.exp(mu/16+g.v*gauss()/4); x=Math.min(prev*1.1,Math.max(prev*0.9,x)); const p=roundTick(x); h=Math.max(h,p); l=Math.min(l,p); }
+      bars.push([d,o,h,l,roundTick(x)]);
+    }
+    const last=bars.pop(), prevC=bars[bars.length-1][4];
+    SIM.bars[g.s]=bars;
+    SIM.px[g.s]={x:last[4], p:last[4], prev:prevC, o:last[1], h:last[2], l:last[3], vol:0, mu:0};
+  }
+  SIM.G = startDay*DAY-1;
+  SIM.lastTick = SIM.G;
+}
+function scheduleDay(day){
+  SIM.sched=[]; const k=1+Math.floor(rnd()*3);
+  for (let i=0;i<k;i++){
+    const sec=Math.floor(600+rnd()*(DAY-1200));
+    if (rnd()<0.28){ const m=NEWS_MKT[Math.floor(rnd()*NEWS_MKT.length)]; SIM.sched.push({sec, mkt:NEWS_MKT.indexOf(m)}); }
+    else { const g=GS[Math.floor(rnd()*GS.length)], pos=rnd()<0.52; const mag=(0.025+rnd()*0.055)*(pos?1:-1);
+      const arr=pos?NEWS_POS:NEWS_NEG; SIM.sched.push({sec, sym:g.s, chg:mag, t:arr[Math.floor(rnd()*arr.length)].replace("{n}",g.n)}); }
+  }
+  SIM.sched.sort((a,b)=>a.sec-b.sec);
+}
+function rollDay(){
+  const day=Math.floor((SIM.G+1)/DAY)-1; // day being closed
+  SIM.mkt = gauss()*0.008;
+  for (const g of GS){
+    const q=SIM.px[g.s]; const b=SIM.bars[g.s];
+    b.push([day,q.o,q.h,q.l,q.p]); if (b.length>250) b.shift();
+    q.prev=q.p; q.x=q.p*Math.exp(gauss()*g.v*0.35+SIM.mkt*g.b*0.4);
+    q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x)); q.p=q.o=q.h=q.l=roundTick(q.x); q.vol=0;
+    q.mu=gauss()*g.v*0.3;
+    SIM.ticks[g.s]=[[0,q.p]];
+  }
+  careerClose(day, simLive); finClose(simLive);
+  for (const g of GS){ const q=SIM.px[g.s]; SIM.ticks[g.s]=[[0,q.p]]; }
+  scheduleDay(day+1);
+}
+function applyNews(ev, live){
+  const day=Math.floor(SIM.G/DAY);
+  let item;
+  if (ev.mkt!=null){ const m=NEWS_MKT[ev.mkt];
+    for (const g of GS){ const k=m.sec[g.sec]; const f = k!=null ? (m.base!==0? m.base*k : 0.012*k) : m.base*g.b;
+      const q=SIM.px[g.s]; q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x*(1+f))); q.mu+=f*0.4; }
+    item={day, G:SIM.G, t:"🌍 "+m.t, up:m.base>0||(m.base===0&&false)};
+  } else {
+    const q=SIM.px[ev.sym]; q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x*(1+ev.chg))); q.mu+=ev.chg*0.5;
+    item={day, G:SIM.G, t:ev.t, sym:ev.sym, up:ev.chg>0};
+  }
+  SIM.news.unshift(item); if (SIM.news.length>40) SIM.news.length=40;
+  if (live) toast("📰 "+esc(item.t));
+}
+function stepPrices(dt){
+  const f=dt/DAY, sq=Math.sqrt(f), mz=gauss();
+  const oldSec=SIM.G%DAY; SIM.G+=dt; const sec=SIM.G%DAY;
+  for (const g of GS){
+    const q=SIM.px[g.s];
+    const ret=(SIM.mkt*g.b+q.mu)*f + (g.v*0.8*gauss()+0.012*g.b*mz)*sq;
+    q.x=Math.min(q.prev*1.1,Math.max(q.prev*0.9,q.x*Math.exp(ret)));
+    q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p;
+    q.vol+= 2e7/Math.sqrt(g.p)*f*(0.5+rnd());
+    if (Math.floor(sec/60)!==Math.floor(oldSec/60)||dt>=60){ const t=SIM.ticks[g.s]||(SIM.ticks[g.s]=[]); t.push([sec,q.p]); if (t.length>600) t.shift(); }
+  }
+  return [oldSec,sec];
+}
+function advanceTo(T){
+  if (!SIM||SIM.G>=T) return [];
+  const live = T-SIM.G<=180, fills=[]; simLive=live;
+  let guard=0;
+  while (SIM.G<T && guard++<2e6){
+    const day=Math.floor(SIM.G/DAY), dayEnd=(day+1)*DAY;
+    if (SIM.G===dayEnd-1 && T>=dayEnd){ SIM.G=dayEnd; rollDay(); continue; }
+    const rem=T-SIM.G, step=rem>5*DAY?1800:rem>3600?60:(SIM.speed==="fast"?60:1);
+    const next=Math.min(T, SIM.G+step, dayEnd-1);
+    if (next<=SIM.G){ SIM.G=dayEnd-1; continue; }
+    const [a,b]=stepPrices(next-SIM.G);
+    while (SIM.sched.length && SIM.sched[0].sec>a && SIM.sched[0].sec<=b) applyNews(SIM.sched.shift(), live);
+    fills.push(...runOrders(s=>SIM.px[s]&&SIM.px[s].p, live)); marginCheck(live);
+  }
+  return fills;
+}
+function syncQG(){
+  for (const g of GS){ const q=SIM.px[g.s], b=SIM.bars[g.s]||[];
+    let hi=q.h, lo=q.l; for (const x of b){ if (x[2]>hi) hi=x[2]; if (x[3]<lo) lo=x[3]; }
+    const old=QG[g.s]&&QG[g.s].price;
+    QG[g.s]={price:q.p, prev:q.prev, vol:q.vol, hi52:hi, lo52:lo, name:g.n, flash: old&&old!==q.p? (q.p>old?"up":"down"):null};
+  }
+}
+let lastSimSave=0, gameTimer=null, simLive=false;
+function gameLoop(){
+  if (mode!=="game"||!SIM) return;
+  const c=gameClock(); const before=SIM.G;
+  const fills=advanceTo(c.T); marginCheck(true);
+  if (fills.length && (c.T-before)>180){
+    toast(`Sen yokken ${fills.length} emrin gerçekleşti — Geçmiş'e bak.`);
+  }
+  syncQG(); snapshotEq(); checkBroke(); renderAll(); if (cur) renderDetail(false);
+  if (Date.now()-lastSimSave>60000 && SIM.G!==before){ lastSimSave=Date.now(); save(); }
+  else if (Date.now()-(gameLoop._ls||0)>8000){ gameLoop._ls=Date.now(); lsSet("arena_sim",{v:1, acct:ACC.game, sim:SIM}); }
+}
+
+// ---------- career: jobs, tahtacılık (team + pool), SPK ----------
+const JOBS = [
+  {id:"kurye",  n:"Moto kurye",            w:900,  exp:0},
+  {id:"garson", n:"Garson",                w:1100, exp:0},
+  {id:"cagri",  n:"Çağrı merkezi",         w:1400, exp:5},
+  {id:"gise",   n:"Banka gişe memuru",     w:2000, exp:15},
+  {id:"staj",   n:"Aracı kurum stajyeri",  w:3000, exp:25, eq:150000},
+  {id:"uzman",  n:"Yatırım uzmanı",        w:5000, exp:40, eq:250000},
+  {id:"fon",    n:"Fon yöneticisi",        w:9000, exp:60, eq:500000},
+];
+const TAHTA_MIN = 50000000, TEAM_MAX = 5, BOSS_CUT = 0.20;
+const ROLES = {
+  sermaye: {n:"Sermayedar",           ic:"💰", d:"Havuza kendi parasını koyar; kârın %20'si patron olarak sana kalır."},
+  bot:     {n:"Bot hesapçı",          ic:"🤖", d:"Emirleri yüzlerce hesaba böler: SPK radarı %35 daha yavaş ısınır."},
+  fenomen: {n:"Telegram/X fenomeni",  ic:"📣", d:"Yaydığı haber 1,6 kat daha sert vurur, küçük yatırımcı daha çabuk koşar."},
+  avukat:  {n:"Sermaye piyasası avukatı", ic:"⚖️", d:"SPK cezasını yarıya indirir."},
+  icerden: {n:"Kurumda içerden adam", ic:"🕵️", d:"SPK'nın o günkü soruşturma ihtimalini sana yüzde olarak söyler."},
+};
+const NICK = {sermaye:["Kasa Kemal","Kuyumcu Kadir","Holding Hakan","Sermayedar Selim","Döviz Dursun","Müteahhit Murat","Altın Ayşe"],
+  bot:["Bot Bülent","Kod Kaan","Hesap Hüsnü"], fenomen:["Telegram Tarık","Fenomen Funda","Sinyal Sinan"], avukat:["Avukat Aslı","Avukat Cem"], icerden:["İçerden İlker","Kulak Kenan"]};
+function career(){
+  const a=ACC.game;
+  if (!a.c) a.c={job:null, exp:0, unlocked:false, op:null, ban:-1e9, frozen:{}, log:[], broke:false};
+  const c=a.c; if (!c.team) c.team=[]; if (!c.cands) c.cands=[]; if (c.commit==null) c.commit=50;
+  if (c.op && c.op.initial==null) c.op=null; // old-format op
+  return c;
+}
+function simDay(){ return Math.floor(SIM.G/DAY); }
+function clog(t){ const c=career(); c.log.unshift({d:dayLabel(Math.max(simDay(),0)), t}); if (c.log.length>30) c.log.length=30; }
+function addNews(t, up, live){ const it={day:simDay(), G:SIM.G, t, up}; SIM.news.unshift(it); if (SIM.news.length>40) SIM.news.length=40; if (live) toast("📰 "+esc(t)); }
+const mtl = n => n>=1e9? fmt(n/1e9,2)+" Mr ₺" : n>=1e6? fmt(n/1e6,1)+" Mn ₺" : tl(n);
+function hasRole(r){ return career().team.some(m=>m.role===r); }
+function botMult(){ return hasRole("bot")?0.65:1; }
+
+// --- liquidity / market impact (all game-mode market orders) ---
+function impactPct(sym, amt){ const g=GMAP[sym]; return Math.min(0.10, 0.30*amt/g.L); }
+function pushPrice(sym, pct){ const q=SIM.px[sym]; q.x=Math.min(q.prev*1.1, Math.max(q.prev*0.9, q.x*(1+pct))); q.p=roundTick(q.x); if (q.p>q.h) q.h=q.p; if (q.p<q.l) q.l=q.p; }
+function marketImpact(sym, side, amt){ const k=impactPct(sym,amt); if (k<0.0005) return; pushPrice(sym, side==="buy"? k : -k*(1-fomo(sym))); }
+function fomo(sym){ const op=career().op; return op&&op.sym===sym? Math.min(0.6, op.pushes*0.12*(hasRole("fenomen")?1.3:1)) : 0; }
+
+// --- candidates ---
+function genCands(){
+  const c=career(); const have=new Set(c.team.map(m=>m.name)); const out=[];
+  const pool=["sermaye","sermaye","sermaye","bot","fenomen","avukat","icerden"];
+  for (let i=0;i<4;i++){
+    const role=pool[Math.floor(rnd()*pool.length)]; const names=NICK[role].filter(n=>!have.has(n)&&!out.some(o=>o.name===n)); if (!names.length) continue;
+    const name=names[Math.floor(rnd()*names.length)];
+    const m={id:Math.floor(rnd()*1e9).toString(36), name, role, loyal:Math.round(55+rnd()*40)};
+    if (role==="sermaye"){ m.cap=Math.round((10+rnd()*90))*1e6; m.fee=0; m.share=0; }
+    else { m.cap=0; m.fee={bot:500000,fenomen:750000,avukat:1000000,icerden:1500000}[role]; m.share={bot:5,fenomen:5,avukat:3,icerden:5}[role]; }
+    out.push(m);
+  }
+  c.cands=out;
+}
+
+// --- pool helpers ---
+function poolVal(op){ return op.cash + op.qty*SIM.px[op.sym].p; }
+function myPoolShare(){ const op=ACC.game.c&&ACC.game.c.op; if (!op||!SIM) return 0; return poolVal(op)*op.myCommit/op.initial; }
+function riskP(h){ return h<35? 0 : (h-35)/65*0.45; }
+
+function careerClose(day, live){
+  const c=career(), a=ACC.game;
+  if (c.job){ const j=JOBS.find(x=>x.id===c.job); if (j){ a.cash+=j.w; c.exp++; clog(`💼 Maaş yattı: +${tl(j.w)} (${j.n})`); if (live) toast(`💼 Maaş yattı: +${tl(j.w)}`); } }
+  if (!c.unlocked && gameEq()>=TAHTA_MIN){ c.unlocked=true; genCands(); clog("🎯 Tahtacılık kilidi açıldı!"); if (live) toast("🎯 50 milyonu geçtin! Artık tahtacı olabilirsin — Kariyer'e bak."); }
+  if (c.unlocked && (day%2===0 || !c.cands.length)) genCands();
+  const op=c.op;
+  if (op){
+    const g=GMAP[op.sym], q=SIM.px[op.sym];
+    op.heat=Math.max(0, op.heat-6);
+    if (op.pushes>=2) q.mu+=0.02*(hasRole("fenomen")?1.4:1);
+    if (op.pushes>=3 && rnd()<0.08){ q.mu-=0.08; pushPrice(op.sym,-0.04); addNews(`${g.n} hissesinde büyük satıcı belirdi, tahta bozuldu`, false, live); clog(`⚠️ ${op.sym}: büyük satıcı geldi, tahta bozuldu.`); }
+    // a team member talks
+    if (op.heat>50) for (const m of c.team){ if (rnd() < (1-m.loyal/100)*0.06){ op.heat=Math.min(100,op.heat+30); clog(`🗣️ ${m.name} ağzından kaçırdı, söylentiler SPK'ya ulaştı (radar +30).`); if (live) toast(`🗣️ ${m.name} öttü! Radar +30`); break; } }
+    if (rnd()<riskP(op.heat)) spkHit(day, live);
+  } else if (c.heatIdle){ c.heatIdle=Math.max(0,c.heatIdle-15); }
+}
+function spkHit(day, live){
+  const c=career(), op=c.op, g=GMAP[op.sym], a=ACC.game;
+  let fine=Math.max(1e6, Math.round(poolVal(op)*0.2)); if (hasRole("avukat")) fine=Math.round(fine/2);
+  a.cash-=fine; op.frozenUntil=day+1+5; op.heat=20; op.pushes=0; c.ban=day+1+15;
+  const q=SIM.px[op.sym]; q.x=q.prev*0.9; q.p=q.o=q.h=q.l=roundTick(q.x); q.mu=-0.03;
+  addNews(`SPK, ${g.n} hissesinde piyasa dolandırıcılığı şüphesiyle tedbir kararı aldı`, false, live);
+  clog(`🚨 SPK operasyonu! Ceza −${mtl(fine)}${hasRole("avukat")?" (avukat yarıya indirdi)":""}. Havuzdaki lotlar 5 gün dondu, 15 gün yeni tahta yok.`);
+  if (live) toast(`🚨 SPK baskını! Ceza −${mtl(fine)}`);
+  const left=[]; c.team=c.team.filter(m=>{ if (m.role!=="sermaye" && rnd()>m.loyal/100){ left.push(m.name); return false; } return true; });
+  if (left.length) clog(`🏃 Korkup ekipten ayrılanlar: ${left.join(", ")}.`);
+}
+function opAction(act, arg){
+  const c=career(); if (mode!=="game"||!SIM) return;
+  if (act==="lev"||act==="loan"||act==="repay"){ finAction(act,arg); return; }
+  const day=simDay(), open=gameClock().open, op=c.op;
+  const needOpen=()=>{ if (!open){ toast("Seans kapalı; tahta seans içinde oynanır."); return false; } return true; };
+  const frozen=()=> op && op.frozenUntil && day<op.frozenUntil;
+  if (act==="job"){ const j=JOBS.find(x=>x.id===arg); if (!j) return; if (c.exp<j.exp || (j.eq&&gameEq()<j.eq)) { toast("Bu iş için şartları henüz karşılamıyorsun."); return; }
+    c.job=j.id; clog(`💼 ${j.n} olarak işe başladın (${tl(j.w)}/gün).`); toast(`💼 Hayırlı olsun! ${j.n} — günlük ${tl(j.w)}`); }
+  else if (act==="quit"){ if (c.job){ const j=JOBS.find(x=>x.id===c.job); clog(`🚪 ${j?j.n:"İş"}ten istifa ettin.`); } c.job=null; toast("İstifa ettin."); }
+  else if (act==="hire"){
+    if (!c.unlocked) return; const m=c.cands.find(x=>x.id===arg); if (!m) return;
+    if (c.team.length>=TEAM_MAX){ toast(`Ekip en fazla ${TEAM_MAX} kişi.`); return; }
+    if (m.role!=="sermaye" && hasRole(m.role)){ toast(`Ekipte zaten bir ${ROLES[m.role].n.toLowerCase()} var.`); return; }
+    if (S.cash<m.fee){ toast(`${m.name} için ${mtl(m.fee)} lazım.`); return; }
+    S.cash-=m.fee; c.team.push(m); c.cands=c.cands.filter(x=>x!==m);
+    clog(`🤝 ${m.name} (${ROLES[m.role].n}) ekibe katıldı${m.cap?` — havuza ${mtl(m.cap)} getiriyor`:` — ücret ${mtl(m.fee)}`}.`); toast(`🤝 ${m.name} ekipte!`);
+  }
+  else if (act==="fire"){ const m=c.team.find(x=>x.id===arg); if (!m) return; if (op && m.cap){ toast("Sermayedar operasyon bitmeden çıkamaz."); return; }
+    c.team=c.team.filter(x=>x!==m); clog(`👋 ${m.name} ekipten çıkarıldı.`); }
+  else if (act==="commit"){ c.commit=+arg; }
+  else if (act==="start"){
+    if (!c.unlocked||op) return; if (day<c.ban){ toast("SPK yasağın sürüyor."); return; }
+    const mine=Math.floor(S.cash*c.commit/100); const caps={}; let capSum=0;
+    for (const m of c.team) if (m.cap){ caps[m.id]=m.cap; capSum+=m.cap; }
+    if (mine<1e6){ toast("Havuza en az 1 Mn ₺ koymalısın."); return; }
+    S.cash-=mine;
+    c.op={sym:arg, start:day, startPx:SIM.px[arg].p, heat:8, pushes:0, lastPush:-1, lastRumor:-1, myCommit:mine, caps, initial:mine+capSum, cash:mine+capSum, qty:0, cost:0, frozenUntil:0};
+    clog(`🎯 ${arg} tahtası kuruldu. Havuz: ${mtl(mine+capSum)} (senin ${mtl(mine)}${capSum?`, ortaklar ${mtl(capSum)}`:""}).`); toast(`🎯 ${arg} tahtası kuruldu. Önce malı topla!`);
+  }
+  else if (!op) { return; }
+  else if (act==="buy"){
+    if (!needOpen()) return; if (frozen()){ toast("SPK tedbiri sürüyor."); return; }
+    const spend=op.cash*(+arg)/100/(1+S.feeRate/1000); if (spend<1000){ toast("Havuzda nakit kalmadı."); return; }
+    const p0=SIM.px[op.sym].p; marketImpact(op.sym,"buy",spend); const p1=SIM.px[op.sym].p; const avg=(p0+p1)/2;
+    const qty=Math.floor(spend/avg); const amt=qty*avg, fee=feeOf(amt);
+    op.cash-=amt+fee; op.qty+=qty; op.cost+=amt+fee; op.heat=Math.min(100,op.heat+Math.round(4*botMult()));
+    clog(`🧺 Mal toplandı: ${fmt(qty,0)} lot @ ~${fmt(avg)} (${mtl(amt)}).`); toast(`🧺 ${fmt(qty,0)} lot toplandı, fiyat ${fmt(p0)} → ${fmt(p1)}`);
+  }
+  else if (act==="sell"){
+    if (!needOpen()) return; if (frozen()){ toast("SPK tedbiri: lotlar donuk."); return; }
+    const qty=Math.floor(op.qty*(+arg)/100); if (qty<1){ toast("Havuzda satılacak lot yok."); return; }
+    const p0=SIM.px[op.sym].p; marketImpact(op.sym,"sell",qty*p0); const p1=SIM.px[op.sym].p; const avg=(p0+p1)/2;
+    const amt=qty*avg, fee=feeOf(amt);
+    op.cost-= op.qty? op.cost*qty/op.qty : 0; op.qty-=qty; op.cash+=amt-fee; op.heat=Math.min(100,op.heat+Math.round(4*botMult()));
+    clog(`📦 Mal dağıtıldı: ${fmt(qty,0)} lot @ ~${fmt(avg)} (${mtl(amt)}).`); toast(`📦 ${fmt(qty,0)} lot dağıtıldı, fiyat ${fmt(p0)} → ${fmt(p1)}`);
+  }
+  else if (act==="push"){
+    if (!needOpen()) return; if (frozen()){ toast("SPK tedbiri sürüyor."); return; }
+    if (op.lastPush===day){ toast("Bugün tahtayı zaten yürüttün."); return; }
+    const cost=Math.round(poolVal(op)*0.003); if (op.cash<cost){ toast("Havuzda yürütecek nakit yok."); return; }
+    op.cash-=cost; op.lastPush=day; op.pushes++; op.heat=Math.min(100,op.heat+Math.round(15*botMult()));
+    SIM.px[op.sym].mu+=0.06; pushPrice(op.sym,0.02);
+    clog(`📈 ${op.sym} tahtası yürütüldü (havuzdan −${mtl(cost)}).`); toast(`📈 ${op.sym} yürüyor! Radar ${op.heat}`);
+  }
+  else if (act==="rumor"){
+    if (!needOpen()) return; if (frozen()){ toast("SPK tedbiri sürüyor."); return; }
+    if (op.lastRumor===day){ toast("Bugün zaten haber yaydın."); return; }
+    const cost=Math.max(1e6, Math.round(poolVal(op)*0.002)); if (op.cash<cost){ toast("Havuzda nakit yok."); return; }
+    op.cash-=cost; op.lastRumor=day; op.heat=Math.min(100,op.heat+Math.round(22*botMult()));
+    const mult=hasRole("fenomen")?1.6:1; pushPrice(op.sym,(0.03+rnd()*0.03)*mult); SIM.px[op.sym].mu+=0.02*mult;
+    addNews(`Sosyal medyada "${GMAP[op.sym].n} dev bir anlaşmaya imza atıyor" iddiası yayıldı`, true, true);
+    clog(`📣 ${op.sym} için haber yayıldı (havuzdan −${mtl(cost)}).`);
+  }
+  else if (act==="close"){
+    if (op.qty>0){ if (frozen()){ toast("Lotlar donukken kapatamazsın."); return; } if (!needOpen()) return;
+      const p0=SIM.px[op.sym].p; marketImpact(op.sym,"sell",op.qty*p0); const avg=(p0+SIM.px[op.sym].p)/2; const amt=op.qty*avg; op.cash+=amt-feeOf(amt); op.qty=0; op.cost=0; }
+    const P=op.cash-op.initial; let mine=op.myCommit + P*op.myCommit/op.initial; const lines=[];
+    for (const [id,cap] of Object.entries(op.caps)){ const m=c.team.find(x=>x.id===id); let part=cap + P*cap/op.initial;
+      if (P>0){ const cut=(P*cap/op.initial)*BOSS_CUT; part-=cut; mine+=cut; }
+      if (m){ m.cap=Math.max(1e6, Math.round(part)); lines.push(`${m.name}: ${P>=0?"+":""}${mtl(part-cap)}`); } }
+    if (P>0) for (const m of c.team) if (m.share){ const s=P*m.share/100; mine-=s; lines.push(`${m.name}: +${mtl(s)} pay`); }
+    S.cash+=mine; c.heatIdle=op.heat; c.op=null;
+    const myPnl=mine-op.myCommit;
+    clog(`🏁 Operasyon kapandı. Havuz ${P>=0?"kârı":"zararı"}: ${mtl(Math.abs(P))}. Senin payın: ${myPnl>=0?"+":"−"}${mtl(Math.abs(myPnl))}. ${lines.join(" · ")}`);
+    toast(`🏁 Operasyon kapandı: sana ${myPnl>=0?"+":"−"}${mtl(Math.abs(myPnl))}`);
+  }
+  if (act==="gojob"){ $("broke").classList.remove("show"); goView("career"); return; }
+  save(); syncQG(); renderAll();
+}
+function frozenMsg(sym){ if (mode!=="game"||!SIM) return null; const c=career(); const f=c.frozen[sym]; if (f!=null && simDay()<f) return `SPK tedbiri: ${sym} ${f-simDay()} gün daha satılamaz.`; return null; }
+function heatColor(h){ return h<35?"var(--up)":h<65?"var(--acc)":"var(--down)"; }
+function renderCareer(){
+  const el=$("careerBox"); if (!el) return;
+  if (mode!=="game"||!SIM){ el.innerHTML=`<div class="empty">Kariyer, iş ve tahtacılık sadece 🎮 Oyun Modu'nda var. Üstteki mod düğmesinden geçebilirsin.</div>`; el._h=""; return; }
+  const c=career(), eq=gameEq(), day=simDay(), open=gameClock().open;
+  // jobs
+  const j=JOBS.find(x=>x.id===c.job);
+  let jh=`<div class="card"><h3>💼 İş · ${c.exp} gün tecrübe</h3>`;
+  jh+= j? `<div class="row" style="padding:6px 0;border:0"><div><div class="sym">${j.n}</div><div class="sub">Her borsa günü sonunda +${tl(j.w)}</div></div><button class="btn" data-act="quit">İstifa</button></div>`
+        : `<div class="sub" style="margin-bottom:6px">Şu an bir işin yok. Borsa kötü giderse maaş seni ayakta tutar.</div>`;
+  jh+=JOBS.map(x=>{ const ok=c.exp>=x.exp && (!x.eq||eq>=x.eq), curJ=x.id===c.job;
+    const req=[x.exp?`${x.exp} gün tecrübe`:"", x.eq?`${tl(x.eq)} varlık`:""].filter(Boolean).join(" + ")||"Şart yok";
+    return `<div class="row" style="padding:9px 0"><div><div class="sym" style="font-size:14px">${x.n}</div><div class="sub">${tl(x.w)}/gün · ${req}</div></div>${curJ?`<span class="pill">Şu anki işin</span>`:`<button class="btn ${ok?"pri":""}" ${ok?`data-act="job" data-arg="${x.id}"`:"disabled style='opacity:.45'"}>${ok?"İşe gir":"🔒"}</button>`}</div>`; }).join("")+`</div>`;
+  // tahta
+  let th=`<div class="card"><h3>🎯 Tahtacılık</h3>`;
+  if (!c.unlocked){
+    const pct=Math.min(100,eq/TAHTA_MIN*100);
+    th+=`<div class="sub">Tahtacı olabilmek için toplam varlığının <b>50 milyon ₺</b>'yi geçmesi lazım. Bu parayla tek başına bile küçük bir hisseyi kıpırdatabilirsin; asıl güç, ekip kurup ortak havuzla hareket etmekte.</div><div class="bar" style="margin-top:8px"><i style="width:${Math.max(1,pct)}%"></i></div><div class="sub" style="margin-top:4px">${mtl(eq)} / 50 Mn ₺ · kalan ${mtl(Math.max(0,TAHTA_MIN-eq))}</div>`;
+  } else {
+    const op=c.op;
+    if (op){
+      const q=SIM.px[op.sym], g=GMAP[op.sym], pv=poolVal(op), pnl=pv-op.initial, chg=(q.p/op.startPx-1)*100, fz=op.frozenUntil&&day<op.frozenUntil;
+      const avg=op.qty? op.cost/op.qty : 0, myP=pnl*op.myCommit/op.initial;
+      th+=`<div class="sym">${op.sym} · ${g.n}</div><div class="sub">Fiyat ${fmt(q.p)} (başlangıçtan <span class="${cls(chg)}">${sgn(chg)}%</span>) · küçük yatırımcı ilgisi %${Math.round(fomo(op.sym)*100)}</div>
+        <div class="grid2" style="margin-top:8px"><div class="kv"><div class="k">Havuz nakit</div><div class="v">${mtl(op.cash)}</div></div><div class="kv"><div class="k">Havuzdaki lot</div><div class="v">${fmt(op.qty,0)}${op.qty?` <span class="sub">ort. ${fmt(avg)}</span>`:""}</div></div>
+        <div class="kv"><div class="k">Havuz değeri</div><div class="v">${mtl(pv)}</div></div><div class="kv"><div class="k">Havuz K/Z (senin payın)</div><div class="v ${cls(pnl)}">${pnl>=0?"+":"−"}${mtl(Math.abs(pnl))} <span class="sub">(${myP>=0?"+":"−"}${mtl(Math.abs(myP))})</span></div></div></div>
+        <div class="sub" style="margin-top:8px">SPK radarı <b style="color:${heatColor(op.heat)}">${op.heat}/100</b>${hasRole("icerden")?` · 🕵️ bugünkü soruşturma ihtimali <b>%${Math.round(riskP(op.heat)*100)}</b>`:""}${fz?` · <b class="down">lotlar ${op.frozenUntil-day} gün donuk</b>`:""}</div><div class="bar"><i style="width:${op.heat}%;background:${heatColor(op.heat)}"></i></div>
+        <div class="sub" style="margin:10px 0 4px">1) Mal topla</div><div class="mbtns"><button class="btn buy" data-act="buy" data-arg="25">%25 nakit</button><button class="btn buy" data-act="buy" data-arg="50">%50</button><button class="btn buy" data-act="buy" data-arg="100">Tümü</button></div>
+        <div class="sub" style="margin:10px 0 4px">2) Fiyatı it</div><div class="mbtns"><button class="btn pri" data-act="push" ${op.lastPush===day?"style='opacity:.45'":""}>📈 Yürüt<br><small>havuzun %0,3'ü · radar +${Math.round(15*botMult())}</small></button><button class="btn pri" data-act="rumor" ${op.lastRumor===day?"style='opacity:.45'":""}>📣 Haber yay<br><small>havuzun %0,2'si · radar +${Math.round(22*botMult())}</small></button></div>
+        <div class="sub" style="margin:10px 0 4px">3) Malı dağıt</div><div class="mbtns"><button class="btn sell" data-act="sell" data-arg="25">%25 lot</button><button class="btn sell" data-act="sell" data-arg="50">%50</button><button class="btn sell" data-act="sell" data-arg="100">Tümü</button></div>
+        <button class="btn" data-act="close" style="width:100%;margin-top:10px">🏁 Operasyonu kapat ve kârı paylaş</button>
+        <div class="sub" style="margin-top:8px">${!open?"Seans kapalı; hamleler seans içinde. ":""}Bu hissenin günlük derinliği ~${mtl(g.L)}: bunun üçte biri kadar alım fiyatı tavana taşır. Küçük yatırımcı ilgisi arttıkça dağıtırken fiyat daha az düşer.</div>`;
+    } else if (day<c.ban){
+      th+=`<div class="sub">🚨 SPK yasağın var: ${c.ban-day} borsa günü daha yeni tahta kuramazsın.</div>`;
+    } else {
+      const mine=Math.floor(S.cash*c.commit/100), capSum=c.team.reduce((a,m)=>a+(m.cap||0),0);
+      th+=`<div class="sub" style="margin-bottom:6px">Havuza nakdinin ne kadarını koyacaksın?</div><div class="chips">${[25,50,75,100].map(p=>`<button data-act="commit" data-arg="${p}" style="${c.commit===p?"background:var(--acc);color:#111":""}">%${p}</button>`).join("")}</div>
+        <div class="sub" style="margin:8px 0">Havuz: senin ${mtl(mine)} + ortaklar ${mtl(capSum)} = <b>${mtl(mine+capSum)}</b>${c.heatIdle?` · eski operasyonun radarı hâlâ ${c.heatIdle}`:""}</div>`;
+      th+=GS.slice().sort((a,b)=>a.L-b.L).map(g=>{ const q=SIM.px[g.s]; const k=Math.min(10,(mine+capSum)/g.L*30);
+        return `<div class="row" style="padding:8px 0"><div><div class="sym" style="font-size:14px">${g.s} <span class="pill">derinlik ${mtl(g.L)}</span></div><div class="sub">${g.n} · ${fmt(q.p)} ₺ · havuzun tamamı fiyatı ~%${fmt(k,1)} iter</div></div><button class="btn pri" data-act="start" data-arg="${g.s}">Tahta kur</button></div>`; }).join("");
+    }
+    // team
+    th+=`</div><div class="card"><h3>👥 Tahtacı ekibi (${c.team.length}/${TEAM_MAX})</h3>`;
+    th+= c.team.length? c.team.map(m=>`<div class="row" style="padding:8px 0"><div><div class="sym" style="font-size:14px">${ROLES[m.role].ic} ${m.name}</div><div class="sub">${ROLES[m.role].n}${m.cap?` · havuza ${mtl(m.cap)}`:` · kârdan %${m.share}`} · sadakat %${m.loyal}</div></div><button class="btn" data-act="fire" data-arg="${m.id}">Çıkar</button></div>`).join("")
+      : `<div class="sub">Henüz ekibin yok. Sermayedarlar havuzu büyütür; uzmanlar riski ve etkiyi değiştirir. Sadakati düşük olan, radar ısınınca ötebilir.</div>`;
+    th+=`<div class="sub" style="margin:12px 0 4px">Aday havuzu (2 günde bir yenilenir)</div>`;
+    th+= c.cands.length? c.cands.map(m=>`<div class="row" style="padding:8px 0"><div><div class="sym" style="font-size:14px">${ROLES[m.role].ic} ${m.name} <span class="pill">${ROLES[m.role].n}</span></div><div class="sub">${ROLES[m.role].d} ${m.cap?`Getirdiği: ${mtl(m.cap)}.`:`Ücret ${mtl(m.fee)} + kârdan %${m.share}.`} Sadakat %${m.loyal}.</div></div><button class="btn pri" data-act="hire" data-arg="${m.id}">Ekibe al</button></div>`).join("")
+      : `<div class="sub">Şu an aday yok.</div>`;
+  }
+  th+=`<div class="sub" style="margin-top:10px;opacity:.75">Not: Gerçek hayatta tahtacılık suçtur (piyasa dolandırıcılığı). Burada kurgusal bir oyun mekaniği.</div></div>`;
+  let h = c.unlocked? th+jh : jh+th;
+  if (c.log.length) h+=`<div class="card"><h3>Olaylar</h3>${c.log.slice(0,12).map(l=>`<div class="ni"><span class="tm">${l.d}</span>${esc(l.t)}</div>`).join("")}</div>`;
+  if (el._h!==h){ el.innerHTML=h; el._h=h; }
+}
+function checkBroke(){
+  if (mode!=="game"||!SIM) return; const c=career(); const a=ACC.game;
+  const broke = gameEq()<2000 && !Object.keys(a.pos).length && !a.orders.length && !c.op;
+  if (broke && !c.broke){ c.broke=true; $("brokeTxt").textContent = c.job? "Paran bitti ama işin var. Maaşın her gün yatacak; biraz biriktirip borsaya geri dön." : "Paran bitti. Bir işe gir, maaşınla biriktir ve borsaya geri dön."; $("broke").classList.add("show"); clog("💸 Battın."); }
+  if (!broke) c.broke=false;
+}
+
+// ---------- finance: leverage (margin) + bank loan (game mode) ----------
+const LEVS=[1,2,5,10], MARGIN_RATE=0.0012, LOAN_RATE=0.002;
+function fin(){ const a=ACC.game; if (!a.f) a.f={lev:1, loan:0, lastInt:0, mcalls:0}; return a.f; }
+function posValOf(a){ let v=0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
+function buyingPower(){
+  if (mode!=="game") return S.cash;
+  const f=fin(), eq=equity(); return S.cash + (f.lev-1)*Math.max(0,eq);
+}
+function loanLimit(){
+  const c=career(), f=fin(); const j=JOBS.find(x=>x.id===c.job);
+  const netEx = gameEq()+f.loan; // equity before loan
+  return Math.max(0, Math.round((j? j.w*120 : 0) + Math.max(0,netEx)*0.5 - f.loan));
+}
+function marginState(){
+  const a=ACC.game, f=fin(), pv=posValOf(a), eq=gameEq();
+  const mm=0.5/Math.max(1,f.lev); const debt=Math.max(0,-a.cash);
+  return {pv, eq, debt, mm, ratio: pv? eq/pv : 1, call: debt>0 && pv>0 && eq < mm*pv};
+}
+function liquidateAll(reason, live){
+  const a=ACC.game; let n=0;
+  for (const o of [...a.orders]){ a.cash+=o.reserved||0; } a.orders=[];
+  for (const [s,p] of Object.entries({...a.pos})){ const q=SIM.px[s]; if (!q) continue;
+    if (frozenMsg(s)) continue;
+    const qty=p.qty; marketImpact(s,"sell",qty*q.p); execute("sell",s,qty,SIM.px[s].p,reason==="icra"?"icra":"margin"); n++; }
+  return n;
+}
+function bankruptCheck(live){
+  const a=ACC.game, f=fin();
+  if (Object.keys(a.pos).length || a.orders.length || (a.c&&a.c.op) || gameEq()>=0) return;
+  const debt=-gameEq(); a.cash=0; f.loan=0; f.lev=1;
+  clog(`🏚️ İflas: ${mtl(debt)} borç ödenemedi. Banka alacağını sildi, kaldıraç kapatıldı. Sıfırdan başlıyorsun.`);
+  if (live) toast("🏚️ İflas ettin. Borçların silindi, sıfırdan başlıyorsun.");
+}
+function marginCheck(live){
+  if (mode!=="game"||!SIM) return;
+  bankruptCheck(live);
+  const ms=marginState(); if (!ms.call) return;
+  const n=liquidateAll("margin", live); const f=fin(); f.mcalls++;
+  clog(`📉 MARGIN CALL! Teminat yetmedi, ${n} pozisyon zorla satıldı. Kalan varlık: ${mtl(gameEq())}.`);
+  if (live) toast("📉 MARGIN CALL! Pozisyonların zorla satıldı.");
+  bankruptCheck(live);
+  save();
+}
+function finClose(live){
+  const a=ACC.game, f=fin(); let int=0;
+  if (a.cash<0){ const i=-a.cash*MARGIN_RATE; a.cash-=i; int+=i; }
+  if (f.loan>0){ const i=f.loan*LOAN_RATE; a.cash-=i; int+=i; }
+  f.lastInt=Math.round(int*100)/100;
+  // cash below what leverage allows (e.g. fines/interest with 1x) -> icra
+  const allowed=-(f.lev-1)*Math.max(0,gameEq());
+  if (a.cash < allowed-1 && Object.keys(a.pos).length){ const n=liquidateAll("icra", live); clog(`⚖️ İcra: borç ödenemedi, ${n} pozisyon satılarak borç kapatıldı.`); if (live) toast("⚖️ İcra! Borç için hisselerin satıldı."); }
+}
+function finAction(act, arg){
+  const a=ACC.game, f=fin();
+  if (act==="lev"){ const L=+arg; if (!LEVS.includes(L)) return;
+    if (L<f.lev && a.cash < -(L-1)*Math.max(0,gameEq())){ toast("Önce borcu azalt: bu kaldıraçta mevcut borcun limitin üstünde kalıyor."); return; }
+    f.lev=L; clog(`⚙️ Kaldıraç ${L}x yapıldı.`); toast(L===1?"Kaldıraç kapatıldı.":`⚙️ Kaldıraç ${L}x — alım gücün ${L} katı. Dikkat: margin call!`); }
+  else if (act==="loan"){ const lim=loanLimit(); const amt=Math.floor(lim*(+arg)/100); if (amt<1000){ toast("Kredi limitin yok. Bir işe gir ya da varlığını büyüt."); return; }
+    f.loan+=amt; a.cash+=amt; clog(`🏦 ${mtl(amt)} kredi çekildi (günlük %${fmt(LOAN_RATE*100,2)} faiz).`); toast(`🏦 Kredi hesabına yattı: +${mtl(amt)}`); }
+  else if (act==="repay"){ const pay=Math.min(f.loan, Math.max(0,a.cash)*(+arg)/100); if (pay<1){ toast("Ödeyecek nakit yok."); return; }
+    f.loan-=pay; a.cash-=pay; if (f.loan<1) f.loan=0; clog(`✅ ${mtl(pay)} kredi borcu ödendi.`); toast(`✅ Borç ödendi: ${mtl(pay)}`); }
+  save(); renderAll();
+}
+function renderFin(){
+  const el=$("finBox"); if (!el) return;
+  if (mode!=="game"||!SIM){ if (el._h!=="x"){ el.innerHTML=""; el._h="x"; } return; }
+  const a=ACC.game, f=fin(), ms=marginState(), lim=loanLimit();
+  const dist = ms.debt>0 && ms.pv>0 ? Math.max(0, (ms.ratio-ms.mm)/(1-ms.mm)) : 1;
+  const col = dist>0.5?"var(--up)":dist>0.2?"var(--acc)":"var(--down)";
+  let h=`<div class="card"><h3>⚡ Kaldıraç (kredili işlem)</h3>
+    <div class="chips">${LEVS.map(L=>`<button data-act="lev" data-arg="${L}" style="${f.lev===L?"background:var(--acc);color:#111":""}">${L}x</button>`).join("")}</div>
+    <div class="grid2" style="margin-top:10px"><div class="kv"><div class="k">Alım gücü</div><div class="v">${mtl(Math.max(0,buyingPower()))}</div></div><div class="kv"><div class="k">Kredili işlem borcu</div><div class="v ${ms.debt?"down":""}">${mtl(ms.debt)}</div></div></div>`;
+  if (ms.debt>0) h+=`<div class="sub" style="margin-top:8px">Margin call'a uzaklık: teminat oranı %${fmt(ms.ratio*100,1)} · alt sınır %${fmt(ms.mm*100,1)}</div><div class="bar"><i style="width:${Math.max(2,dist*100)}%;background:${col}"></i></div>`;
+  h+=`<div class="sub" style="margin-top:8px">Kaldıraç kazancı da kaybı da katlar. Borç için günlük %${fmt(MARGIN_RATE*100,2)} faiz işler. Varlığın, pozisyonlarının %${fmt(ms.mm*100,1)}'inin altına düşerse hepsi zorla satılır.</div></div>`;
+  h+=`<div class="card"><h3>🏦 Banka kredisi</h3>
+    <div class="grid2"><div class="kv"><div class="k">Kredi borcun</div><div class="v ${f.loan?"down":""}">${mtl(f.loan)}</div></div><div class="kv"><div class="k">Kullanılabilir limit</div><div class="v">${mtl(lim)}</div></div></div>
+    <div class="sub" style="margin:8px 0 4px">Kredi çek</div><div class="chips"><button data-act="loan" data-arg="25">%25</button><button data-act="loan" data-arg="50">%50</button><button data-act="loan" data-arg="100">Limitin tamamı</button></div>
+    ${f.loan?`<div class="sub" style="margin:8px 0 4px">Borç öde (nakitten)</div><div class="chips"><button data-act="repay" data-arg="25">%25</button><button data-act="repay" data-arg="50">%50</button><button data-act="repay" data-arg="100">Ödeyebildiğin kadar</button></div>`:""}
+    <div class="sub" style="margin-top:8px">Limit, maaşına (120 günlük) ve varlığının yarısına göre belirlenir. Günlük %${fmt(LOAN_RATE*100,2)} faiz${f.lastInt?` · son gün ödenen faiz ${tl(f.lastInt)}`:""}. Faizi ödeyemezsen icra gelir, hisselerin satılır.</div></div>`;
+  if (el._h!==h){ el.innerHTML=h; el._h=h; }
+}
+
+// ---------- valuation ----------
+function equity(){ let v=S.cash + (mode==="game"? myPoolShare()-fin().loan:0); for (const o of S.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
+function stockVal(){ let v=0; for (const [s,p] of Object.entries(S.pos)) v += p.qty*((Q[s]&&Q[s].price)||p.avg); return v; }
+function rankOf(eq){ let r=RANKS[0], nx=null; for (let i=0;i<RANKS.length;i++){ if (eq>=RANKS[i].min){ r=RANKS[i]; nx=RANKS[i+1]||null; } } return {r,nx}; }
+function feeOf(amount){ return Math.round(amount*S.feeRate/1000*100)/100; }
+function watchList(){
+  if (mode==="game") return GS.map(g=>g.s);
+  const w=[...BASE]; for (const s of S.watch) if(!w.includes(s)) w.push(s); for (const s of Object.keys(S.pos)) if(!w.includes(s)) w.push(s); return w;
+}
+
+// ---------- borsa connector (real mode) ----------
+function textOf(res){
+  if (!res) return "";
+  if (typeof res.payload==="string") return res.payload;
+  if (res.content&&res.content.length) return res.content.filter(c=>c.type==="text").map(c=>c.text).join("\n");
+  if (res.payload) return JSON.stringify(res.payload);
+  return "";
+}
+function parseTsv(txt){
+  const m = txt.match(/```tsv\n([\s\S]*?)```/); if (!m) return [];
+  const lines = m[1].trim().split("\n"); const head = lines.shift().split("\t");
+  return lines.map(l=>{ const c=l.split("\t"); const o={}; head.forEach((h,i)=>o[h]=c[i]); return o; });
+}
+function metaTime(txt){ const m=txt.match(/timestamp:\s*([0-9T:\-\.]+)/); if(!m) return null; const d=new Date(m[1].replace(/\.\d+$/,"")+"Z"); return isNaN(d)?null:d; }
+function ddmm(d){ return d.slice(8,10)+"."+d.slice(5,7); }
+function parseHist(txt, single){
+  const rows = parseTsv(txt); const out={}; const mk=b=>({d:b.date.slice(0,10),lbl:ddmm(b.date.slice(0,10)),o:+b.open,h:+b.high,l:+b.low,c:+b.close,v:+b.volume});
+  if (rows.length && rows[0].data!==undefined){ for (const r of rows){ try{ out[r.symbol]=JSON.parse(r.data).map(mk); }catch(e){} } }
+  else if (rows.length && single){ out[single]=rows.map(mk); }
+  return out;
+}
+let mcp=null, mcpTried=false; const unsubs=[]; let lastData=null;
+function banner(txt, btn){ $("bannerTxt").textContent=txt; $("banner").classList.toggle("show",!!txt); $("bannerBtn").style.display=btn?"inline-block":"none"; }
+function handleErr(e){
+  if (mode!=="real") return;
+  const c = e&&e.code;
+  if (c==="server_not_connected"||c==="server_not_found") banner("Borsa bağlayıcısı bulunamadı. claude.ai Ayarlar → Bağlayıcılar'dan “borsa”yı ekleyip sayfayı yeniden aç. (Oyun Modu bağlayıcısız çalışır.)");
+  else if (c==="needs_reauth") banner("Borsa bağlayıcısının oturumu düşmüş. claude.ai Ayarlar → Bağlayıcılar'dan yeniden bağlan.");
+  else if (c==="approval_required"||c==="consent_required") banner("Gerçek fiyatlar için bu sayfanın borsa bağlayıcını kullanmasına izin vermen gerekiyor.", true);
+  else if (c==="not_in_manifest"||c==="blocked_by_policy") banner("Bu sayfa için borsa bağlantısı kapalı. Portföyün duruyor ama fiyatlar güncellenmiyor.");
+  else if (c==="selection_required") banner("Birden fazla “borsa” bağlayıcın var; claude.ai'nin sorduğu yerden birini seç.");
+  else if (c==="not_granted"||c==="capability_disabled"||c==="capability_removed") banner("Bu görünümde gerçek veri yok. Sayfayı claude.ai'de aç ya da Oyun Modu'na geç.");
+  else banner("Fiyatlar şu an alınamıyor; son bilinen fiyatlar gösteriliyor, kendini birazdan yeniler.");
+}
+function batches(arr,n=10){ const o=[]; for (let i=0;i<arr.length;i+=n) o.push(arr.slice(i,i+n)); return o; }
+function stopWatches(){ while (unsubs.length) unsubs.pop()(); }
+function startWatches(){
+  stopWatches();
+  if (mode!=="real") return;
+  if (!mcp){ if (mcpTried) banner("Bu görünümde gerçek veri yok. Sayfayı claude.ai'de aç ya da Oyun Modu'na geç."); return; }
+  for (const b of batches(watchList())){
+    unsubs.push(mcp.watchTool(SERVER,"get_quote",{symbol:b,market:"bist"}, ev=>{
+      if (ev.type==="error"){ handleErr(ev.error); return; }
+      if (mode==="real") banner("");
+      const txt = textOf(ev.result);
+      const at = (ev.result.cache&&ev.result.cache.storedAt)? new Date(ev.result.cache.storedAt) : (metaTime(txt)||new Date());
+      onQuotes(parseTsv(txt), at);
+    }, {refetchInterval:60000, cache:{staleTime:45000, gcTime:600000}}));
+    loadPrev(b);
+  }
+}
+async function loadPrev(b){
+  try{
+    const res = await mcp.callTool(SERVER,"get_historical_data",{symbol:b,market:"bist",period:"5d"},{cache:{staleTime:1800000,gcTime:7200000}});
+    const h = parseHist(textOf(res)); const today = istNow().date;
+    for (const [s,bars] of Object.entries(h)){
+      if (!bars.length) continue;
+      const last = bars[bars.length-1];
+      const prev = (last.d===today && bars.length>1)? bars[bars.length-2].c : last.c;
+      QR[s] = Object.assign(QR[s]||{}, {prev});
+    }
+    renderAll();
+  }catch(e){}
+}
+async function askPermission(){
+  if (!mcp) return;
+  try{ await mcp.callTool(SERVER,"get_quote",{symbol:["THYAO"],market:"bist"}); banner(""); startWatches(); }
+  catch(e){ handleErr(e); }
+}
+function onQuotes(rows, at){
+  lastData = at;
+  const ses = session(), isReal = mode==="real";
+  for (const r of rows){
+    const s=r.symbol, p=+r.current_price; if (!s||!isFinite(p)||p<=0) continue;
+    const old = QR[s]&&QR[s].price;
+    QR[s] = Object.assign(QR[s]||{}, {price:p, vol:+r.volume, hi52:+r.week_52_high, lo52:+r.week_52_low, at:+at, flash: old&&old!==p?(p>old?"up":"down"):null});
+    if (ses.open){ const t=TR[s]||(TR[s]=[]); const ts=Date.now(); if (!t.length||t[t.length-1][1]!==p||ts-t[t.length-1][0]>240000) t.push([ts,p]); if (t.length>600) t.shift(); }
+  }
+  if (!isReal) return;
+  if (ses.open){ saveTicks(); const f=runOrders(s=>QR[s]&&QR[s].price, true); if (f.length) save(); }
+  snapshotEq(); renderAll(); if (cur) renderDetail(false);
+}
+
+// ---------- orders ----------
+function runOrders(priceOf, live){
+  const fills=[];
+  for (const o of [...S.orders]){
+    const p=priceOf(o.sym); if (!p) continue;
+    if (o.side==="sell" && frozenMsg(o.sym)) continue;
+    let hit=false, fillPx=p;
+    if (o.type==="lmt" && o.side==="buy" && p<=o.px){ hit=true; fillPx=Math.min(p,o.px); }
+    if (o.type==="lmt" && o.side==="sell" && p>=o.px){ hit=true; fillPx=Math.max(p,o.px); }
+    if (o.type==="stp" && o.side==="sell" && p<=o.px){ hit=true; fillPx=p; }
+    if (!hit) continue;
+    S.orders = S.orders.filter(x=>x.id!==o.id);
+    const r = execute(o.side,o.sym,o.qty,fillPx,o.type==="stp"?"stop":"limit", o.reserved||0);
+    fills.push(o);
+    if (live){ if (r.ok) toast(`${o.type==="stp"?"🛑 Stop":"✅ Limit"} gerçekleşti: ${o.sym} ${o.qty} lot @ ${fmt(fillPx)}`); else toast(`⚠️ ${o.sym} emri iptal: ${r.err}`); }
+  }
+  if (fills.length && mode==="game") save();
+  return fills;
+}
+function execute(side,sym,qty,px,via,reserved=0){
+  const amt = Math.round(qty*px*100)/100, fee = feeOf(amt);
+  const g = mode==="game"&&SIM ? dayLabel(Math.floor(SIM.G/DAY))+" "+gTime(SIM.G) : null;
+  if (side==="buy"){
+    const avail = buyingPower() + reserved;
+    if (amt+fee > avail+0.001) { S.cash += reserved; return {ok:false, err:"nakit yetersiz"}; }
+    S.cash = S.cash + reserved - amt - fee;
+    const p = S.pos[sym]||{qty:0,avg:0,cost:0};
+    p.cost += amt+fee; p.qty += qty; p.avg = p.cost/p.qty; S.pos[sym]=p;
+    S.trades.unshift({t:Date.now(),g,side,sym,qty,px,fee,via,pnl:null});
+  } else {
+    const p = S.pos[sym]; const free = (p?p.qty:0) - lockedQty(sym);
+    if (!p || qty > free) return {ok:false, err:"elde yeterli lot yok"};
+    const costPart = p.avg*qty; const pnl = amt - fee - costPart;
+    S.cash += amt - fee; p.qty -= qty; p.cost -= costPart;
+    if (p.qty<=0) delete S.pos[sym];
+    S.trades.unshift({t:Date.now(),g,side,sym,qty,px,fee,via,pnl});
+  }
+  S.fees += fee;
+  if (S.trades.length>300) S.trades.length=300;
+  return {ok:true};
+}
+function lockedQty(sym){ return S.orders.filter(o=>o.sym===sym&&o.side==="sell").reduce((a,o)=>a+o.qty,0); }
+function snapshotEq(){
+  const d=dayKey(), eq=equity();
+  if (S.dayStart.date!==d){ S.dayStart={date:d, eq: S.eqHist.length? S.eqHist[S.eqHist.length-1][1] : eq}; }
+  const last=S.eqHist[S.eqHist.length-1];
+  if (!last||last[0]!==d){ S.eqHist.push([d,eq]); if (S.eqHist.length>365) S.eqHist.shift(); if (mode==="real") save(); }
+  else if (Math.abs(last[1]-eq)>0.5){ last[1]=eq; if (mode==="real"&&!snapshotEq._t){ snapshotEq._t=setTimeout(()=>{snapshotEq._t=null; save();},20000); } }
+}
+
+// ---------- render ----------
+function renderHeader(){
+  const ses=session(); $("sess").classList.toggle("open",ses.open); $("sessTxt").textContent=ses.txt;
+  $("modeBtn").textContent = mode==="game"? `🎮 Oyun · ${SIM&&SIM.speed==="fast"?"Hızlı":"Gerçek saat"} ▾` : "📈 Gerçek Piyasa ▾";
+  const eq=equity(), pnl=eq-START;
+  $("eq").textContent=tl(eq);
+  $("eqPnl").innerHTML=`<span class="${cls(pnl)}">${sgn(pnl)} ₺ (${sgn(pnl/START*100)}%)</span>`;
+  const {r,nx}=rankOf(eq); $("rankName").textContent=r.n;
+  if (nx){ $("rankNext").textContent=`${nx.n} için ${tl(nx.min-eq)}`; $("rankBar").style.width=Math.max(2,Math.min(100,(eq-r.min)/(nx.min-r.min)*100))+"%"; }
+  else { $("rankNext").textContent="Zirvedesin"; $("rankBar").style.width="100%"; }
+  if (mode==="game"&&SIM){ $("fresh").textContent=`${dayLabel(Math.floor(SIM.G/DAY))} · ${gTime(SIM.G)} · Oyun Modu — şirketler ve fiyatlar kurgusaldır`; }
+  else if (lastData){ const mins=Math.round((Date.now()-lastData)/60000); $("fresh").textContent=`Son veri ${lastData.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"})} (${mins<1?"az önce":mins+" dk önce"}) · fiyatlar ~15 dk gecikmeli · dakikada bir yenilenir`; }
+  else $("fresh").textContent= mcp? "Gerçek fiyatlar yükleniyor…" : "Gerçek veri bekleniyor…";
+}
+function chgOf(s){ const q=Q[s]; if (!q||!q.price||!q.prev) return null; return (q.price/q.prev-1)*100; }
+function fmtBig(n){ return n>=1e9?fmt(n/1e9,1)+" Mr":n>=1e6?fmt(n/1e6,1)+" Mn":n>=1e3?fmt(n/1e3,0)+" B":fmt(n,0); }
+function renderNews(){
+  if (mode!=="game"||!SIM){ $("news").innerHTML=""; return; }
+  const items=SIM.news.slice(0,3);
+  $("news").innerHTML = `<div class="newsbox"><div class="h"><span>📰 Haber akışı</span><span>${SIM.news.length? "":"Henüz haber yok"}</span></div>${items.map(n=>`<div class="ni"><span class="tm">${dayLabel(n.day)} ${gTime(n.G)}</span><span class="${n.up?"up":"down"}">${n.up?"▲":"▼"}</span> ${esc(n.t)}</div>`).join("")}</div>`;
+}
+function renderList(){
+  $("list").innerHTML = watchList().map(s=>{
+    const q=Q[s]||{}; const c=chgOf(s); const own=S.pos[s];
+    const sub = mode==="game"? (GMAP[s]?GMAP[s].n:"") : (q.vol?"Hacim "+fmtBig(q.vol):"—");
+    return `<div class="row" data-s="${s}"><div><div class="sym">${s}${own?`<span class="pill">${fmt(own.qty,0)} lot</span>`:""}</div><div class="sub">${esc(sub)}</div></div>
+      <div class="px"><b class="${q.flash?"flash-"+q.flash:""}">${q.price?fmt(q.price):"—"}</b><span class="chg ${c==null?"flat":c>0?"up":c<0?"down":"flat"}">${c==null?"—":sgn(c)+"%"}</span></div></div>`;
+  }).join("");
+  for (const s in Q) if (Q[s]) Q[s].flash=null;
+  $("addRow").style.display = mode==="game"?"none":"";
+}
+function renderPort(){
+  const eq=equity();
+  $("pCash").textContent=tl(S.cash); $("pStock").textContent=tl(stockVal());
+  const day=eq-(S.dayStart.eq||eq); $("pDay").innerHTML=`<span class="${cls(day)}">${sgn(day)} ₺</span>`;
+  $("pFee").textContent=tl(S.fees);
+  const ents=Object.entries(S.pos);
+  $("posList").innerHTML = ents.length? ents.map(([s,p])=>{
+    const px=(Q[s]&&Q[s].price)||p.avg, val=p.qty*px, pnl=val-p.cost, pct=pnl/p.cost*100;
+    return `<div class="row" data-s="${s}"><div><div class="sym">${s}</div><div class="sub">${fmt(p.qty,0)} lot · ort. ${fmt(p.avg)}</div></div>
+      <div class="px"><b>${tl(val)}</b><span class="pnl ${cls(pnl)}">${sgn(pnl)} ₺ (${sgn(pct)}%)</span></div></div>`;
+  }).join("") : `<div class="empty">Henüz hissen yok. Piyasa'dan bir hisseye dokunup ilk alımını yap.</div>`;
+  $("badges").innerHTML = BADGES.map(b=>`<span class="badge ${b.t(S,eq)?"got":""}">${b.t(S,eq)?"🏅 ":"🔒 "}${b.n}</span>`).join("");
+  drawEq();
+}
+function renderOrders(){
+  $("ordList").innerHTML = S.orders.length? S.orders.map(o=>`<div class="row"><div><div class="sym">${o.sym} <span class="pill">${o.side==="buy"?"ALIŞ":"SATIŞ"} · ${o.type==="lmt"?"Limit":"Stop"}</span></div>
+     <div class="sub">${fmt(o.qty,0)} lot @ ${fmt(o.px)} · şu an ${Q[o.sym]&&Q[o.sym].price?fmt(Q[o.sym].price):"—"}</div></div><button class="btn" data-cancel="${o.id}">İptal</button></div>`).join("")
+   : `<div class="empty">Bekleyen emrin yok. ${mode==="game"?"Oyun Modu'nda limit ve stop emirleri sen uygulamada olmasan da piyasa ne zaman o fiyata gelirse gerçekleşir.":"Limit ve stop emirleri fiyat gelince kendiliğinden gerçekleşir; uygulama kapalıyken açtığın andaki fiyata göre kontrol edilir."}</div>`;
+}
+function renderHist(){
+  $("histList").innerHTML = S.trades.length? S.trades.slice(0,80).map(t=>{
+    const d=t.g || new Date(t.t).toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit",timeZone:"Europe/Istanbul"});
+    return `<div class="row"><div><div class="sym">${t.sym} <span class="pill" style="color:${t.side==="buy"?"var(--up)":"var(--down)"}">${t.side==="buy"?"AL":"SAT"}${t.via!=="market"?" · "+t.via:""}</span></div><div class="sub">${d} · ${fmt(t.qty,0)} lot @ ${fmt(t.px)}</div></div>
+      <div class="px">${t.pnl==null?`<span class="mut">${tl(t.qty*t.px)}</span>`:`<span class="pnl ${cls(t.pnl)}">${sgn(t.pnl)} ₺</span>`}</div></div>`;
+  }).join("") : `<div class="empty">İşlem geçmişi boş.</div>`;
+  $("feeIn").value = S.feeRate;
+  $("resetBtn").textContent = mode==="game"? "Oyunu sıfırla (yeni piyasa, 100.000 ₺)" : "Demo hesabı sıfırla (100.000 ₺)";
+  $("disc").textContent = mode==="game"? "Oyun Modu'ndaki şirketler, haberler ve fiyatlar tamamen kurgusaldır. Para sanaldır." : "Fiyatlar Borsa İstanbul'dan yaklaşık 15 dk gecikmeli gelir. Para tamamen sanaldır; bu bir oyundur, yatırım tavsiyesi değildir.";
+}
+function renderAll(){ renderHeader(); renderNews(); renderList(); if (view==="port"){ renderPort(); renderFin(); } if (view==="orders") renderOrders(); if (view==="hist") renderHist(); if (view==="career") renderCareer(); }
+
+// ---------- charts ----------
+function setupCanvas(cv){ const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1; cv.width=r.width*dpr; cv.height=r.height*dpr; const c=cv.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0); return {c,w:r.width,h:r.height}; }
+function drawLine(cv, pts, color, base){
+  const {c,w,h}=setupCanvas(cv); c.clearRect(0,0,w,h); if (pts.length<2) return false;
+  const ys=pts.map(p=>p[1]); if (base!=null) ys.push(base);
+  let mn=Math.min(...ys), mx=Math.max(...ys); if (mx===mn){ mx+=1; mn-=1; } const pad=(mx-mn)*.12; mn-=pad; mx+=pad;
+  const X=i=>8+i/(pts.length-1)*(w-80), Y=v=>8+(1-(v-mn)/(mx-mn))*(h-24);
+  if (base!=null){ c.strokeStyle="#8a97a855"; c.setLineDash([4,4]); c.beginPath(); c.moveTo(8,Y(base)); c.lineTo(w-72,Y(base)); c.stroke(); c.setLineDash([]); }
+  const g=c.createLinearGradient(0,0,0,h); g.addColorStop(0,color+"55"); g.addColorStop(1,color+"00");
+  c.beginPath(); pts.forEach((p,i)=>i?c.lineTo(X(i),Y(p[1])):c.moveTo(X(i),Y(p[1]))); c.lineTo(X(pts.length-1),h); c.lineTo(X(0),h); c.fillStyle=g; c.fill();
+  c.beginPath(); pts.forEach((p,i)=>i?c.lineTo(X(i),Y(p[1])):c.moveTo(X(i),Y(p[1]))); c.strokeStyle=color; c.lineWidth=2; c.stroke();
+  c.fillStyle="#8a97a8"; c.font="10px -apple-system,sans-serif"; c.textAlign="right";
+  [mx-pad,(mx+mn)/2,mn+pad].forEach(v=>c.fillText(fmt(v,v>=10000?0:2),w-4,Y(v)+4));
+  return true;
+}
+function drawCandles(cv, bars){
+  const {c,w,h}=setupCanvas(cv); c.clearRect(0,0,w,h); if (!bars.length) return false;
+  let mn=Math.min(...bars.map(b=>b.l)), mx=Math.max(...bars.map(b=>b.h)); const pad=(mx-mn)*.06||1; mn-=pad; mx+=pad;
+  const cw=(w-64)/bars.length, Y=v=>8+(1-(v-mn)/(mx-mn))*(h-24);
+  bars.forEach((b,i)=>{ const x=8+i*cw+cw/2, up=b.c>=b.o; c.strokeStyle=c.fillStyle=up?"#1fbf75":"#ef4f5a";
+    c.beginPath(); c.moveTo(x,Y(b.h)); c.lineTo(x,Y(b.l)); c.lineWidth=1; c.stroke();
+    const bw=Math.max(1,cw*.65), y1=Y(Math.max(b.o,b.c)), y2=Y(Math.min(b.o,b.c)); c.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1)); });
+  c.fillStyle="#8a97a8"; c.font="10px -apple-system,sans-serif"; c.textAlign="right";
+  [mx-pad,(mx+mn)/2,mn+pad].forEach(v=>c.fillText(fmt(v),w-4,Y(v)+4));
+  c.textAlign="left"; c.fillText(bars[0].lbl,8,h-2); c.textAlign="right"; c.fillText(bars[bars.length-1].lbl,w-60,h-2);
+  return true;
+}
+function drawEq(){ const pts=S.eqHist.length>1?S.eqHist:[[0,START],[1,equity()]]; drawLine($("eqChart"),pts,equity()>=START?"#1fbf75":"#ef4f5a",START); }
+
+// ---------- detail / order sheet ----------
+let cur=null, side="buy", otype="mkt", ctab="intra"; const HIST={};
+function openDetail(s){ cur=s; $("oQty").value=""; $("oPx").value=""; otype="mkt"; setSide("buy"); setType("mkt"); $("sheet").classList.add("show"); $("sheetBg").classList.add("show"); renderDetail(true); }
+function closeDetail(){ cur=null; $("sheet").classList.remove("show"); $("sheetBg").classList.remove("show"); }
+async function loadHist(s, period){
+  if (mode==="game"){
+    const n = period==="3mo"?63:250; const q=SIM.px[s];
+    const bars=(SIM.bars[s]||[]).slice(-(n-1)).map(b=>({lbl:dayLabel(b[0]),o:b[1],h:b[2],l:b[3],c:b[4]}));
+    bars.push({lbl:dayLabel(Math.floor(SIM.G/DAY)),o:q.o,h:q.h,l:q.l,c:q.p}); return bars;
+  }
+  const k=s+"|"+period; if (HIST[k]) return HIST[k]; if (!mcp) return null;
+  const res = await mcp.callTool(SERVER,"get_historical_data",{symbol:s,market:"bist",period},{cache:{staleTime:1800000,gcTime:7200000}});
+  const h = parseHist(textOf(res), s); return HIST[k]=h[s]||[];
+}
+let lastIntra=0;
+async function renderDetail(first){
+  const s=cur; if (!s) return; const q=Q[s]||{}; const c=chgOf(s);
+  $("dSym").textContent = s + (mode==="game"&&GMAP[s]? " · "+GMAP[s].n : "");
+  $("dPx").textContent=q.price?fmt(q.price)+" ₺":"—";
+  $("dChg").innerHTML = c==null?"":`<span class="${cls(c)}">${sgn(q.price-q.prev)} (${sgn(c)}%)</span> <span class="mut">bugün</span>`;
+  const own=S.pos[s];
+  $("dInfo").textContent = [q.prev?`Taban ${fmt(roundTick(q.prev*0.9))} · Tavan ${fmt(roundTick(q.prev*1.1))}`:"", q.hi52?`${mode==="game"?"Dönem":"52H"} ${fmt(q.lo52)}–${fmt(q.hi52)}`:"", own?`Elinde ${fmt(own.qty,0)} lot (ort. ${fmt(own.avg)})`:""].filter(Boolean).join(" · ");
+  if (first || (ctab==="intra" && Date.now()-lastIntra>2000) || (mode==="game" && ctab!=="intra" && Date.now()-lastIntra>5000)){ lastIntra=Date.now(); await drawChart(); }
+  if (first) updateSum();
+}
+async function drawChart(){
+  const s=cur, note=$("chartNote"); if (!s) return; note.textContent="";
+  if (ctab==="intra"){
+    const t = mode==="game"? (SIM.ticks[s]||[]) : (TR[s]||[]); const q=Q[s]||{};
+    const ok = drawLine($("chart"), t, (q.prev&&q.price<q.prev)?"#ef4f5a":"#1fbf75", q.prev);
+    if (!ok) note.textContent = session().open? (mode==="game"?"Seans yeni açıldı, grafik oluşuyor…":"Gün içi grafik sen izledikçe dakika dakika oluşur…") : "Seans kapalı. 3 Ay / 1 Yıl'a bak.";
+  } else {
+    if (mode!=="game") note.textContent="Yükleniyor…";
+    try{ const bars=await loadHist(s, ctab); if (cur!==s) return; note.textContent=""; if (!bars||!drawCandles($("chart"),bars)) note.textContent="Grafik verisi yok."; }
+    catch(e){ note.textContent="Grafik alınamadı."; handleErr(e); }
+  }
+}
+function setSide(v){ side=v; document.querySelectorAll(".tabs.side button").forEach(b=>b.classList.toggle("on",b.dataset.s===v));
+  const stp=document.querySelector('#typeTabs [data-t="stp"]'); stp.style.display=v==="buy"?"none":""; if (v==="buy"&&otype==="stp"){ $("oPx").value=""; setType("lmt"); }
+  $("oGo").className="btn go "+(v==="buy"?"buy":"sell"); updateSum(); }
+function setType(v){ otype=v; document.querySelectorAll("#typeTabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===v));
+  $("priceField").style.display=v==="mkt"?"none":""; $("priceLbl").textContent=v==="lmt"?"Limit fiyat":"Stop fiyatı (bu fiyata düşerse sat)";
+  const q=Q[cur]; if (v!=="mkt" && q&&q.price && !$("oPx").value){ const t=tick(q.price); $("oPx").value = v==="stp"? roundTick(q.price*0.97) : side==="buy"? roundTick(q.price-t) : roundTick(q.price+t); }
+  updateSum(); }
+function maxQty(){
+  const q=Q[cur]; const px = otype==="mkt"?(q&&q.price):(+$("oPx").value||(q&&q.price));
+  if (side==="buy"){ if (!px) return 0; return Math.max(0,Math.floor(buyingPower()/(px*(1+S.feeRate/1000)))); }
+  const p=S.pos[cur]; return p? Math.max(0,p.qty-lockedQty(cur)) : 0;
+}
+function validate(){
+  const q=Q[cur]; const ses=session(); const qty=Math.floor(+$("oQty").value);
+  if (!q||!q.price) return "Bu hissenin fiyatı henüz gelmedi.";
+  if (!qty||qty<1) return "Adet gir.";
+  if (otype==="mkt" && !ses.open) return "Seans kapalı: piyasa emri verilemez. Limit emir bırakabilirsin.";
+  if (otype!=="mkt"){ const px=+$("oPx").value; if (!px||px<=0) return "Fiyat gir.";
+    if (Math.abs(roundTick(px)-px)>1e-6) return `Fiyat adımı ${fmt(tick(px))} ₺ olmalı (örn. ${fmt(roundTick(px))}).`;
+    if (q.prev && (px<q.prev*0.9-1e-6 || px>q.prev*1.1+1e-6)) return "Fiyat bugünkü taban–tavan aralığının dışında.";
+    if (otype==="lmt" && side==="buy" && px>=q.price) return "Limit alış fiyatı şu anki fiyatın altında olmalı (üstündeyse piyasa emri ver).";
+    if (otype==="lmt" && side==="sell" && px<=q.price) return "Limit satış fiyatı şu anki fiyatın üstünde olmalı.";
+    if (otype==="stp" && px>=q.price) return "Stop fiyatı şu anki fiyatın altında olmalı.";
+  }
+  if (side==="sell"){ const fz=frozenMsg(cur); if (fz) return fz; }
+  if (qty>maxQty()) return side==="buy"?"Nakit yetmiyor.":"Elinde bu kadar serbest lot yok.";
+  return null;
+}
+function updateSum(){
+  if (!cur) return; const q=Q[cur]; const qty=Math.floor(+$("oQty").value)||0;
+  const px = otype==="mkt"?(q&&q.price||0):(+$("oPx").value||0);
+  const amt=qty*px, fee=feeOf(amt);
+  $("maxQty").textContent = `· en fazla ${fmt(maxQty(),0)}`;
+  $("oSum").innerHTML = `<div><span class="mut">Tutar</span><span>${tl(amt)}</span></div><div><span class="mut">Komisyon (binde ${fmt(S.feeRate,1)})</span><span>${tl(fee)}</span></div><div><b>${side==="buy"?"Toplam ödenecek":"Hesaba geçecek"}</b><b>${tl(side==="buy"?amt+fee:amt-fee)}</b></div>`;
+  $("oErr").textContent = qty? (validate()||"") : "";
+  $("oGo").textContent = (side==="buy"?"AL":"SAT") + (otype==="mkt"?"":otype==="lmt"?" · Limit emir bırak":" · Stop emir bırak");
+}
+function submit(){
+  const err=validate(); if (err){ $("oErr").textContent=err; return; }
+  const q=Q[cur], qty=Math.floor(+$("oQty").value);
+  if (otype==="mkt"){
+    const r=execute(side,cur,qty,q.price,"market");
+    if (!r.ok){ $("oErr").textContent=r.err; return; }
+    if (mode==="game"){ marketImpact(cur, side, qty*q.price); syncQG(); marginCheck(true); }
+    toast(`${side==="buy"?"🟢 Alındı":"🔴 Satıldı"}: ${cur} ${fmt(qty,0)} lot @ ${fmt(q.price)}`);
+  } else {
+    const px=+$("oPx").value; let reserved=0;
+    if (side==="buy"){ reserved = Math.round(qty*px*(1+S.feeRate/1000)*100)/100; S.cash -= reserved; }
+    S.orders.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), sym:cur, side, type:otype, qty, px, reserved, t:Date.now()});
+    toast(`⏳ Emir bırakıldı: ${cur} ${fmt(qty,0)} lot @ ${fmt(px)}`);
+  }
+  save(); snapshotEq(); renderAll(); $("oQty").value=""; updateSum(); renderDetail(false);
+}
+
+// ---------- modes ----------
+function setMode(m){
+  if (mode==="game"&&SIM&&m!=="game"){ save(); }
+  mode=m; S=ACC[m]; Q = m==="game"?QG:QR; savePrefs();
+  $("chooser").classList.remove("show"); closeDetail(); banner("");
+  clearInterval(gameTimer); gameTimer=null;
+  if (m==="game"){ stopWatches(); syncQG(); gameLoop(); gameTimer=setInterval(gameLoop,1000); }
+  else { startWatches(); }
+  renderAll();
+}
+function openChooser(){
+  const has=!!SIM;
+  $("gameCont").innerHTML = has? `<div class="mbtns" style="margin-bottom:8px"><button class="btn pri" id="contGame">▶ Devam et · ${SIM.speed==="fast"?"Hızlı":"Gerçek saat"} · ${tl(gameEq())}</button></div><div class="sub" style="margin-bottom:8px">Ya da baştan, yeni bir piyasayla başla:</div>` : "";
+  $("gameStart").querySelectorAll("button").forEach(b=>b.classList.toggle("pri", !has && b.dataset.speed==="fast"));
+  $("chClose").style.display = mode? "" : "none";
+  if (!window.claude){ $("goReal").textContent="Sadece Claude içinde çalışır"; $("goReal").classList.remove("pri"); }
+  $("chooser").classList.add("show");
+  const c=$("contGame"); if (c) c.onclick=()=>setMode("game");
+}
+function gameEq(){ let v=ACC.game.cash + myPoolShare() - ((ACC.game.f&&ACC.game.f.loan)||0); for (const o of ACC.game.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(ACC.game.pos)) v+=p.qty*((SIM&&SIM.px[s]&&SIM.px[s].p)||p.avg); return v; }
+function startGame(speed){
+  const f=ACC.game.feeRate||1; ACC.game=fresh(); ACC.game.feeRate=f;
+  for (const k in QG) delete QG[k];
+  initSim(speed); setMode("game"); save();
+  toast(speed==="fast"? "⚡ Hızlı mod: bir borsa günü 8 dakika sürer." : "🕙 Gerçek saat: piyasa hafta içi 10:00–18:00 açık.");
+}
+
+// ---------- events ----------
+let view="market";
+function goView(v){ view=v; document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.v===v)); document.querySelectorAll("section").forEach(x=>x.classList.toggle("on",x.id==="v-"+v)); renderAll(); window.scrollTo(0,0); }
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>goView(b.dataset.v));
+let tap=null;
+document.addEventListener("pointerdown",e=>{ const a=e.target.closest("[data-act]"), o=e.target.closest("[data-open]"), c=e.target.closest("[data-cancel]"), r=(a||o||c)?null:e.target.closest(".row[data-s]");
+  tap = (r||c||a||o)? {s:(o&&o.dataset.open)||(r&&r.dataset.s), c:c&&c.dataset.cancel, a:a&&a.dataset.act, arg:a&&a.dataset.arg, x:e.clientX, y:e.clientY} : null; });
+document.addEventListener("pointercancel",()=>{ tap=null; });
+document.addEventListener("pointerup",e=>{
+  if (!tap) return; const t=tap; tap=null; if (Math.abs(e.clientX-t.x)>10||Math.abs(e.clientY-t.y)>10) return;
+  if (t.c){ const o=S.orders.find(x=>x.id===t.c); if (o){ S.cash+=o.reserved||0; S.orders=S.orders.filter(x=>x!==o); save(); renderAll(); toast("Emir iptal edildi."); } return; }
+  if (t.a){ opAction(t.a, t.arg); return; }
+  if (t.s) openDetail(t.s);
+});
+$("sheetBg").onclick=closeDetail; $("dClose").onclick=closeDetail;
+document.querySelectorAll(".tabs.side button").forEach(b=>b.onclick=()=>setSide(b.dataset.s));
+document.querySelectorAll("#typeTabs button").forEach(b=>b.onclick=()=>{ $("oPx").value=""; setType(b.dataset.t); });
+document.querySelectorAll("#chartTabs button").forEach(b=>b.onclick=()=>{ ctab=b.dataset.c; document.querySelectorAll("#chartTabs button").forEach(x=>x.classList.toggle("on",x===b)); lastIntra=Date.now(); drawChart(); });
+document.querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{ $("oQty").value=Math.floor(maxQty()*(+b.dataset.p)/100)||""; updateSum(); });
+$("oQty").oninput=updateSum; $("oPx").oninput=updateSum; $("oGo").onclick=submit;
+$("addBtn").onclick=()=>{ const s=$("addSym").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,""); if (!s) return; if (!watchList().includes(s)){ S.watch.push(s); save(); startWatches(); } $("addSym").value=""; renderAll(); toast(s+" listeye eklendi."); };
+$("feeIn").onchange=()=>{ S.feeRate=Math.max(0,Math.min(10,+$("feeIn").value||0)); save(); };
+$("resetBtn").onclick=()=>$("resetConf").classList.add("show");
+$("resetNo").onclick=()=>$("resetConf").classList.remove("show");
+$("resetYes").onclick=()=>{ $("resetConf").classList.remove("show");
+  if (mode==="game"){ openChooser(); toast("Hızını seçip yeni oyuna başla."); return; }
+  const w=S.watch, f=S.feeRate; ACC.real=fresh(); ACC.real.watch=w; ACC.real.feeRate=f; S=ACC.real; save(); renderAll(); toast("Demo hesap 100.000 ₺ ile sıfırlandı."); };
+$("bannerBtn").onclick=askPermission;
+$("modeBtn").onclick=openChooser;
+$("chClose").onclick=()=>$("chooser").classList.remove("show");
+$("goReal").onclick=()=>setMode("real");
+$("gameStart").querySelectorAll("button").forEach(b=>b.onclick=()=>startGame(b.dataset.speed));
+window.addEventListener("resize",()=>{ if (cur) drawChart(); if (view==="port") drawEq(); });
+setInterval(()=>{ if (mode==="real") renderHeader(); },30000);
+document.addEventListener("visibilitychange",()=>{ if (document.hidden && mode==="game" && SIM){ lastSimSave=Date.now(); save(); } });
+
+// ---------- boot ----------
+load();
+if (mode==="game"&&!SIM) mode=null;
+if (mode) setMode(mode); else openChooser();
+(async()=>{
+  const c = window.claude;
+  mcpTried=true;
+  if (!c||!c.use){ if (mode==="real") banner("Bu görünümde gerçek veri yok. Sayfayı claude.ai'de aç ya da Oyun Modu'na geç."); return; }
+  try{
+    const [m, d, u] = await Promise.all([c.use("mcp"), c.use("db"), c.use("user")]);
+    mcp=m; db=d; mcpTried=true;
+    if (u){ try{ uid = await u.id(); }catch(e){ uid=null; } }
+    if (db&&uid){
+      const base="data/users/"+uid+"/";
+      try{
+        const [rs, gs, ps] = await Promise.all([db.doc(base+"game").get(), db.doc(base+"sim").get(), db.doc(base+"prefs").get()]);
+        if (rs.exists){ const v=rs.data(); if (v&&v.v===1) ACC.real=Object.assign(fresh(), JSON.parse(JSON.stringify(v))); }
+        if (gs.exists){ const v=JSON.parse(JSON.stringify(gs.data())); if (v&&v.v===1&&v.sim){ const localT=SIM?SIM.G:-1e12; if (v.sim.G>=localT){ const ticks=SIM&&SIM.ticks; ACC.game=Object.assign(fresh(), v.acct); SIM=v.sim; SIM.ticks= ticks||{}; } } }
+        let pm = ps.exists? (ps.data()||{}).mode : null;
+        if (!mode && pm && (pm==="real"||SIM)) { setMode(pm); }
+        else if (mode){ S=ACC[mode]; if (mode==="game") syncQG(); }
+      }catch(e){}
+    }
+    if (mode==="real") startWatches();
+    renderAll();
+  }catch(e){ if (mode==="real") banner("Gerçek veri başlatılamadı; sayfayı yeniden aç."); }
+})();
+})();
+
+document.getElementById("brokeClose").onclick=()=>document.getElementById("broke").classList.remove("show");
+</script>
+</body>
+</html>
