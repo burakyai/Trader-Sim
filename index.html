@@ -225,11 +225,13 @@ canvas{display:block;width:100%;height:210px}
 
 <div class="chooser" id="evModal" style="background:#000c">
   <div class="ch-in" style="margin-top:18vh"><div class="mcard">
-    <div style="font-size:40px;text-align:center">🎴</div><div class="mt" style="text-align:center">Bir gelişme var</div>
+    <div style="display:flex;justify-content:flex-end;margin:-6px -6px 0 0"><button class="x" id="evX" aria-label="Kapat">✕</button></div>
+    <div style="font-size:40px;text-align:center;margin-top:-18px">🎴</div><div class="mt" style="text-align:center">Bir gelişme var</div>
     <div class="md" id="evTxt" style="font-size:15px;color:var(--text)"></div>
     <div class="mbtns" id="evBtns"><button class="btn pri" id="evA">A</button><button class="btn" id="evB">B</button></div>
     <div class="sub" id="evRes" style="margin-top:8px;font-size:14px"></div>
     <button class="btn pri" id="evOk" style="width:100%;margin-top:10px;display:none">Tamam</button>
+    <button class="btn" id="evOff" style="width:100%;margin-top:8px;font-size:13px;color:var(--mut)">Olay kartlarını kapat</button>
   </div></div>
 </div>
 
@@ -1281,14 +1283,14 @@ function pendClose(day, live){
   SIM.sched.sort((a,b)=>a.sec-b.sec);
 }
 let evShown=null;
-function maybeEvent(){ const L=life(); if (evShown||!L.evq.length) return; if (document.querySelector(".sheet.show")||$("chooser").classList.contains("show")||$("broke").classList.contains("show")) return;
+function maybeEvent(){ const L=life(); if (!SND.ev){ L.evq=[]; return; } if (evShown||!L.evq.length) return; if (document.querySelector(".sheet.show")||$("chooser").classList.contains("show")||$("broke").classList.contains("show")) return;
   const e=L.evq.shift(); const E=EVENTS.find(x=>x.id===e.id); if (!E) return; evShown=e;
   $("evTxt").textContent=E.t(e.d); $("evA").textContent=E.a; $("evB").textContent=E.b; $("evRes").textContent=""; $("evBtns").style.display=""; $("evOk").style.display="none";
   $("evModal").classList.add("show"); sfx("news"); }
 function evChoose(which){ const e=evShown; if (!e) return; const E=EVENTS.find(x=>x.id===e.id); const r=(which==="A"?E.A:E.B)(e.d)||"";
   clog(`🎴 ${E.t(e.d).slice(0,60)}… → ${which==="A"?E.a:E.b}. ${r}`); $("evRes").textContent=r; $("evBtns").style.display="none"; $("evOk").style.display=""; save(); renderAll(); }
 function evClose(){ evShown=null; $("evModal").classList.remove("show"); }
-function eventsRoll(day){ const L=life(); if (L.evq.length>=2) return; if (rnd()<0.35){ const eq=Math.max(0,gameEq()); const ok=EVENTS.filter(x=>x.cond(eq)); if (!ok.length) return; const E=ok[Math.floor(rnd()*ok.length)]; L.evq.push({id:E.id, d:E.make(eq)}); } }
+function eventsRoll(day){ const L=life(); if (!SND.ev||L.evq.length>=2) return; if (rnd()<0.35){ const eq=Math.max(0,gameEq()); const ok=EVENTS.filter(x=>x.cond(eq)); if (!ok.length) return; const E=ok[Math.floor(rnd()*ok.length)]; L.evq.push({id:E.id, d:E.make(eq)}); } }
 
 // ===== gün sonu =====
 function lifeClose(day, live){
@@ -1344,8 +1346,8 @@ function lifeBody(sub){
 }
 
 // ===== Ses & titreşim =====
-let AC=null; const SND={on:true, vib:true};
-function sndLoad(){ const v=lsGet("arena_snd"); if (v){ SND.on=v.on!==false; SND.vib=v.vib!==false; } }
+let AC=null; const SND={on:true, vib:true, ev:true};
+function sndLoad(){ const v=lsGet("arena_snd"); if (v){ SND.on=v.on!==false; SND.vib=v.vib!==false; SND.ev=v.ev!==false; } }
 function sndSave(){ lsSet("arena_snd", SND); }
 let gestured=false;
 function acInit(){ gestured=true; if (AC) return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AC=null; } }
@@ -1731,7 +1733,7 @@ function setMode(m){
   renderAll(); if (view==="god") renderGod();
 }
 function lifeEnsure(){ if (!SIM) return; const L=life(), d=Math.floor((SIM.G+1)/DAY); if (L.tasks.day<d) genTasks(d); if (!L.season) initRivals(d); }
-function renderSnd(){ const el=$("sndBox"); if (!el) return; el.innerHTML=`<div class="chips"><button data-act="snd_on" style="${SND.on?"background:var(--acc);color:#111":""}">${SND.on?"🔊 Ses açık":"🔇 Ses kapalı"}</button><button data-act="snd_vib" style="${SND.vib?"background:var(--acc);color:#111":""}">${SND.vib?"📳 Titreşim açık":"Titreşim kapalı"}</button></div><div class="sub" style="margin-top:6px">iPhone Safari titreşimi desteklemiyor; ses çalışır.</div>`; }
+function renderSnd(){ const el=$("sndBox"); if (!el) return; el.innerHTML=`<div class="chips"><button data-act="snd_on" style="${SND.on?"background:var(--acc);color:#111":""}">${SND.on?"🔊 Ses açık":"🔇 Ses kapalı"}</button><button data-act="snd_vib" style="${SND.vib?"background:var(--acc);color:#111":""}">${SND.vib?"📳 Titreşim açık":"Titreşim kapalı"}</button></div><div class="chips" style="margin-top:6px"><button data-act="snd_ev" style="${SND.ev?"background:var(--acc);color:#111":""}">${SND.ev?"🎴 Olay kartları açık":"🎴 Olay kartları kapalı"}</button></div><div class="sub" style="margin-top:6px">iPhone Safari titreşimi desteklemiyor; ses çalışır.</div>`; }
 function syncGodTab(){ const on=isSim()&&premium()&&!(ACC.game.c&&ACC.game.c.hideGod); document.querySelector('nav button[data-v="god"]').style.display = on? "" : "none"; if (view==="god" && !on) goView("market"); }
 function slotEq(k){ const sim=slotSim(k), a= k===curSlot? ACC.game : SLOT[k].acct; if (!sim||!a) return 0; let v=a.cash-((a.f&&a.f.loan)||0)+luxValOf(a)+compValOf(a); for (const o of a.orders) v+=o.reserved||0; for (const [s,p] of Object.entries(a.pos)) v+=p.qty*((sim.px[s]&&sim.px[s].p)||p.avg); const op=a.c&&a.c.op; if (op&&sim.px[op.sym]) v+=(op.cash+op.qty*sim.px[op.sym].p)*op.myCommit/op.initial; return v; }
 function openChooser(){
@@ -1769,7 +1771,8 @@ document.addEventListener("pointercancel",()=>{ tap=null; });
 document.addEventListener("pointerup",e=>{
   if (!tap) return; const t=tap; tap=null; if (Math.abs(e.clientX-t.x)>10||Math.abs(e.clientY-t.y)>10) return;
   if (t.c){ const o=S.orders.find(x=>x.id===t.c); if (o){ S.cash+=o.reserved||0; S.orders=S.orders.filter(x=>x!==o); save(); renderAll(); toast("Emir iptal edildi."); } return; }
-  if (t.a==="snd_on"||t.a==="snd_vib"){ if (t.a==="snd_on") SND.on=!SND.on; else SND.vib=!SND.vib; sndSave(); renderSnd(); if (SND.on) sfx("buy"); return; }
+  if (t.a==="snd_on"||t.a==="snd_vib"||t.a==="snd_ev"){ if (t.a==="snd_on") SND.on=!SND.on; else if (t.a==="snd_vib") SND.vib=!SND.vib; else { SND.ev=!SND.ev; if (!SND.ev && isSim()){ life().evq=[]; if (evShown) evClose(); } toast(SND.ev?"🎴 Olay kartları açıldı":"🎴 Olay kartları kapatıldı"); }
+    sndSave(); renderSnd(); if (SND.on && t.a==="snd_on") sfx("buy"); return; }
   if (t.a){ opAction(t.a, t.arg); return; }
   if (t.s) openDetail(t.s);
 });
@@ -1788,6 +1791,8 @@ $("resetYes").onclick=()=>{ $("resetConf").classList.remove("show");
   const w=S.watch, f=S.feeRate; ACC.real=fresh(); ACC.real.watch=w; ACC.real.feeRate=f; S=ACC.real; save(); renderAll(); toast("Demo hesap 100.000 ₺ ile sıfırlandı."); };
 $("bannerBtn").onclick=askPermission;
 $("evA").onclick=()=>evChoose("A"); $("evB").onclick=()=>evChoose("B"); $("evOk").onclick=evClose;
+$("evX").onclick=()=>{ if (evShown){ clog("🎴 Bir olay kartını geçtin."); } evClose(); };
+$("evOff").onclick=()=>{ SND.ev=false; sndSave(); if (isSim()) life().evq=[]; evClose(); toast("🎴 Olay kartları kapatıldı. Seçenekler'den tekrar açabilirsin."); };
 $("modeBtn").onclick=openChooser;
 $("chClose").onclick=()=>$("chooser").classList.remove("show");
 $("goReal").onclick=()=>setMode("real");
